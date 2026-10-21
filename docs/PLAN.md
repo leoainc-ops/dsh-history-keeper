@@ -151,3 +151,7 @@ configuración validada sin romper el montaje, y `restore` deliberadamente fuera
 (escribe el store vivo). 40 tests, incluido un contrato del bundle que falla si el patch
 deja de referenciar el paquete por nombre. Falta: montaje real en DSH (requiere reinicio
 de la app) y la fase C.
+Publicación: 0.1.0-rc.2 en npm (tag `latest`), 18 archivos, 70 kB. Un defecto de codificación en la
+descripción del paquete (un reescritor propio la re-encodeó y npm mostró `Ã¢â‚¬â€`) obligó a
+republicar como rc.2 con la descripción en ASCII puro; se agregó una prueba de regresión que falla
+si vuelve a aparecer mojibake o si `lib/index.js` deja de declarar la misma versión que `package.json`.
