@@ -7,17 +7,27 @@ test('exposes the plugin contract the host loads', () => {
   assert.equal(name, 'dsh-history-keeper')
   assert.equal(typeof apply, 'function')
   assert.ok(Array.isArray(inject))
+  assert.ok(inject.includes('commands'), 'the command registry is a hard dependency')
   assert.match(version, /^\d+\.\d+\.\d+/)
 })
 
-test('mounts without any host service and registers one disposer', () => {
+test('mounts against the host surface it injects', () => {
+  const registered = []
   const effects = []
-  apply({ effect: (fn) => effects.push(fn) })
+  const ctx = {
+    commands: { register: (definition) => registered.push(definition) },
+    on: () => {},
+    effect: (factory) => effects.push(factory()),
+  }
+
+  assert.doesNotThrow(() => apply(ctx, { store: undefined }))
+  assert.equal(registered.length, 1)
+  assert.equal(registered[0].name, 'keeper')
   assert.equal(effects.length, 1)
-  assert.equal(typeof effects[0](), 'function')
 })
 
-test('survives a context without effect (bare boot)', () => {
-  assert.doesNotThrow(() => apply({}))
-  assert.doesNotThrow(() => apply(undefined))
+test('survives a context without an event bus or disposers', () => {
+  const ctx = { commands: { register: () => {} } }
+  assert.doesNotThrow(() => apply(ctx, {}))
+  assert.doesNotThrow(() => apply(ctx))
 })

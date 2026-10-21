@@ -145,3 +145,9 @@ Las fases C y D pueden solaparse una semana si la captura automática ya es esta
 
 Las fases A y la mitad de B quedaron completas en la primera jornada de trabajo; el
 cronograma sigue vigente y el cuello de botella pasa a ser la integración con el host.
+Actualización fase B: el plugin ya integra el host — `/keeper status|snapshot|verify`,
+captura automática en `session/flush` y `session/disposed` con debounce y single-flight,
+configuración validada sin romper el montaje, y `restore` deliberadamente fuera del host
+(escribe el store vivo). 40 tests, incluido un contrato del bundle que falla si el patch
+deja de referenciar el paquete por nombre. Falta: montaje real en DSH (requiere reinicio
+de la app) y la fase C.

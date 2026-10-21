@@ -40,6 +40,35 @@ node bin/keeper.js restore  --store ./vault --home /tmp/restored-home
 `restore` reproduce el layout del host bajo `sessions/`, verifica cada hash y nunca
 sobrescribe un log existente.
 
+## Uso dentro de DSH
+
+Instalá el bundle y apuntá la fila a tu bóveda en el patch del perfil:
+
+```yaml
+- insert:
+    - id: history-keeper
+      name: dsh-history-keeper
+      config:
+        store: C:\Users\vos\keeper-vault        # obligatorio
+        sessionsRoot: C:\Users\vos\.dsh\sessions # opcional; por defecto ~/.dsh/sessions
+        autoSnapshotOnFlush: true               # capturar al cerrar cada turno
+        debounceMs: 2000
+```
+
+La frase de paso nunca va en el patch: exportá `KEEPER_PASSPHRASE` (o usá
+`passphraseFile`). Después, en una conversación:
+
+```text
+/keeper status     qué tiene la bóveda, qué falta publicar, qué le falta a esta máquina
+/keeper snapshot   capturar ahora los bytes nuevos
+/keeper verify     revisar cada objeto, hash y cadena
+/keeper help
+```
+
+`restore` **no** está disponible dentro de DSH a propósito: escribe el store de sesiones
+vivo y un host en ejecución no lo notaría. Sigue siendo una operación de la CLI, con DSH
+cerrado — que es justamente el punto de una herramienta de recuperación.
+
 ## Principios de diseño
 
 1. **Sin binarios externos.** Sólo `node:` — ni `git`, ni `age`, nada que instalar.
