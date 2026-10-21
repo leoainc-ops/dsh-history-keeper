@@ -131,9 +131,14 @@ test('an up-to-date session is skipped, not duplicated', (t) => {
 test('corrupting one object fails verification', (t) => {
   const { home, storeDir, store } = setup(t, [sessionA, sessionB])
   snapshot(store, { home })
-  assert.equal(verifyStore(openStore(storeDir, PASS)).ok, true)
+  const reopened = openStore(storeDir, PASS)
+  assert.equal(verifyStore(reopened).ok, true)
 
-  const objectFile = path.join(storeDir, listFiles(storeDir).find((entry) => entry.startsWith('objects/')))
+  const manifestId = reopened.meta.manifest.id
+  const objectFile = path.join(
+    storeDir,
+    listFiles(storeDir).find((entry) => entry.startsWith('objects/') && !entry.includes(manifestId)),
+  )
   const bytes = fs.readFileSync(objectFile)
   bytes[bytes.length - 30] ^= 0xff
   fs.writeFileSync(objectFile, bytes)
@@ -141,6 +146,26 @@ test('corrupting one object fails verification', (t) => {
   const result = verifyStore(openStore(storeDir, PASS))
   assert.equal(result.ok, false)
   assert.ok(result.problems.length > 0)
+})
+
+test('a corrupted manifest is reported, and restore writes nothing', (t) => {
+  const { home, storeDir, store } = setup(t, [sessionA])
+  snapshot(store, { home })
+  const headId = store.meta.manifest.id
+  const file = path.join(storeDir, 'objects', headId + '.bin')
+  const bytes = fs.readFileSync(file)
+  bytes[bytes.length - 30] ^= 0xff
+  fs.writeFileSync(file, bytes)
+
+  const reopened = openStore(storeDir, PASS)
+  const verified = verifyStore(reopened)
+  assert.equal(verified.ok, false, 'verify must report instead of throwing')
+  assert.ok(verified.problems.some((problem) => problem.code === 'HASH_MISMATCH'), JSON.stringify(verified.problems))
+
+  const target = path.join(path.dirname(home), 'restored')
+  const report = restore(reopened, { home: target })
+  assert.equal(report.created.length, 0, 'nothing may be written from a damaged store')
+  assert.ok(report.problems.length > 0)
 })
 
 test('a local rewrite is refused instead of published', (t) => {
