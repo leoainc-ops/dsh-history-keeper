@@ -128,3 +128,20 @@ Las fases C y D pueden solaparse una semana si la captura automática ya es esta
    cifrado no es legible sin clave.
 5. Escribir el `README.md` inicial con la promesa, el comando de instalación y el estado
    ("pre-alpha: restaurar y verificar").
+
+---
+
+## 7. Estado de ejecución (21-oct-2026)
+
+| Ítem | Estado |
+|---|---|
+| Repo público, topics, reserva del nombre en npm | hecho |
+| Motor: escáner de frames, chunking, crypto, store, cadena de manifiestos | hecho |
+| CLI: `init`, `snapshot`, `verify`, `status`, `restore` | hecho |
+| Validación con datos reales (8 sesiones de PC-A) | **8/8 byte a byte**, `verify` sobre 2.709 frames / 4,6 MiB, 0 fugas de metadatos |
+| Suite de tests | 27/27 |
+| Bundle montando en el host | esqueleto válido; faltan hooks de host |
+| Sync en vivo | pendiente (fase C) |
+
+Las fases A y la mitad de B quedaron completas en la primera jornada de trabajo; el
+cronograma sigue vigente y el cuello de botella pasa a ser la integración con el host.
