@@ -1,0 +1,57 @@
+{
+  "name": "dsh-history-keeper",
+  "version": "0.0.1",
+  "description": "Encrypted, verifiable history keeper for DeepSeek Harness: snapshot, verify and restore your sessions — no git, no external binaries.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "files": [
+    "lib/",
+    "cordis.patch.yml",
+    "README.md",
+    "README-es.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": ">=0.1.0-rc.6 <0.3.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "manifestVersion": 1
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "history",
+    "session",
+    "backup",
+    "restore",
+    "sync",
+    "encryption",
+    "cross-device"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leoainc-ops/dsh-history-keeper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/leoainc-ops/dsh-history-keeper/issues"
+  },
+  "homepage": "https://github.com/leoainc-ops/dsh-history-keeper#readme",
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "guard": "node scripts/guard-no-sessions.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

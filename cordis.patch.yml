@@ -1,0 +1,5 @@
+# Layer contributed by dsh-history-keeper when a profile lists this bundle.
+# The row id is stable; users override this row from their own profile patch.
+- insert:
+    - id: history-keeper
+      name: dsh-history-keeper

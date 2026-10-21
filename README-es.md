@@ -1,0 +1,66 @@
+# dsh-history-keeper
+
+**Tu historial de DeepSeek Harness vuelve — y podés comprobarlo.**
+
+*English: [README.md](README.md)*
+
+> **Estado: pre-alfa (0.0.1).** Esta versión sólo demuestra que el bundle monta.
+> Todavía no hay snapshot, verify ni restore. Seguí el repo para el primer hito usable.
+
+## El problema
+
+Tus conversaciones viven en un solo lugar: `~/.dsh/sessions` en una sola máquina. Si esa
+máquina muere, se mueren con ella. No queda copia, ni forma de comprobar que la copia que
+tenés está intacta.
+
+`dsh-history-keeper` existe para resolver eso: capturar el historial, cifrarlo,
+verificarlo y restaurarlo byte a byte.
+
+## Qué va a hacer
+
+| Hito | Entrega |
+|---|---|
+| **0.1** | `snapshot`, `verify` y `restore` desde una carpeta compartida, con la CLI funcionando sin DSH abierto |
+| **1.0** | sync en vivo entre máquinas, manifiestos por dispositivo, conflictos explícitos, vinculación y revocación de dispositivos |
+
+## Principios de diseño
+
+1. **Sin binarios externos.** Sólo `node:` — ni `git`, ni `age`, nada que instalar.
+2. **Falla cerrado.** Sin clave no se sincroniza. Un conflicto nunca escribe. El cifrado nunca degrada a texto plano.
+3. **Nunca sobrescribir, nunca borrar.** El restore sólo crea; lo que ya existe y difiere se aparta.
+4. **Append-only y verificable.** Cada objeto es inmutable y se nombra por su contenido; la cadena de chunks permite auditar la integridad incluso sin la clave.
+5. **Copias por dispositivo**, nunca un archivo mutable compartido.
+6. **El transporte es tonto.** Una carpeta (o cualquier proveedor) sólo mueve blobs: no interpreta, no ordena, no fusiona.
+7. **Auditable por vos.** `verify` y un reporte legible: no tenés que confiar en nosotros.
+
+## Privacidad
+
+El historial se cifra antes de salir de la máquina, y los metadatos también: los nombres y
+tamaños de archivo no revelan en qué proyectos trabajás. Sin la clave, el almacén es
+opaco. No hay servidor ni cuenta.
+
+## Instalación
+
+Todavía no está publicado. Cuando salga 0.1:
+
+```sh
+dsh plugin --profile web add dsh-history-keeper
+```
+
+## Compatibilidad
+
+Desarrollado contra DeepSeek Harness `0.2.0-rc.2`. El bundle declara `engines.dsh`, así
+que un host incompatible lo rechaza en lugar de comportarse mal.
+
+## Desarrollo
+
+```sh
+node --test "test/*.test.mjs"   # tests unitarios, sin dependencias que instalar
+npm run guard                   # rechaza logs de sesión commiteados
+```
+
+Diseño y hoja de ruta: [`docs/`](docs/).
+
+## Licencia
+
+MIT

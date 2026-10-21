@@ -1,0 +1,13 @@
+node_modules/
+*.tgz
+*.log
+.DS_Store
+Thumbs.db
+tmp/
+
+# Never commit real session data. `npm run guard` enforces this in CI; these
+# patterns keep local experiments out of `git add` in the first place.
+*.jsonl
+*.jsonl.zstd
+*.zst
+!test/fixtures/synthetic/**
