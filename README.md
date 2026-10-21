@@ -4,9 +4,9 @@
 
 *Español: [README-es.md](README-es.md)*
 
-> **Status: pre-alpha (0.0.1).** This release only proves the bundle mounts.
-> There is no snapshot, verify or restore yet. Watch the repository for the first
-> usable milestone.
+> **Status: pre-alpha (0.1.0 in progress).** The engine works: `snapshot`, `verify` and
+> `restore` run on real DSH logs, validated byte for byte on 8 sessions. Host plugin
+> integration and live sync are the next milestones.
 
 ## The problem
 
@@ -23,6 +23,22 @@ restore it — byte for byte.
 |---|---|
 | **0.1** | `snapshot`, `verify` and `restore` from a shared folder, with the CLI working without DSH running |
 | **1.0** | live sync between machines, per-device manifests, explicit conflict handling, device pairing and revocation |
+
+## Try it now (from a checkout)
+
+The CLI needs nothing but Node — no DSH, no git, no external binaries.
+
+```sh
+export KEEPER_PASSPHRASE='a passphrase of at least 8 characters'
+
+node bin/keeper.js init     --store ./vault
+node bin/keeper.js snapshot --store ./vault --home ~/.dsh
+node bin/keeper.js verify   --store ./vault
+node bin/keeper.js restore  --store ./vault --home /tmp/restored-home
+```
+
+`restore` reproduces the host's own layout under `sessions/`, verifies every hash, and
+never overwrites an existing log.
 
 ## Design principles
 

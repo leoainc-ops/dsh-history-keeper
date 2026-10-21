@@ -1,16 +1,21 @@
 {
   "name": "dsh-history-keeper",
-  "version": "0.0.1",
-  "description": "Encrypted, verifiable history keeper for DeepSeek Harness: snapshot, verify and restore your sessions — no git, no external binaries.",
+  "version": "0.1.0-rc.1",
+  "description": "Encrypted, verifiable history keeper for DeepSeek Harness: snapshot, verify and restore your sessions â€” no git, no external binaries.",
   "type": "module",
   "main": "lib/index.js",
+  "bin": {
+    "keeper": "bin/keeper.js"
+  },
   "exports": {
     ".": "./lib/index.js",
+    "./cli": "./bin/keeper.js",
     "./package.json": "./package.json",
     "./cordis.patch.yml": "./cordis.patch.yml"
   },
   "files": [
     "lib/",
+    "bin/",
     "cordis.patch.yml",
     "README.md",
     "README-es.md",
