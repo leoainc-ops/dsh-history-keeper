@@ -36,6 +36,9 @@ common options
   --passphrase-env <name>  env var holding the passphrase (default KEEPER_PASSPHRASE)
   --json                   machine-readable output
 
+init options
+  --device-name <name>     label stored with this device (default: hostname)
+
 snapshot options
   --session <id>           limit to one session (repeatable)
   --max-chunk-bytes <n>    target chunk size (default 1048576)
