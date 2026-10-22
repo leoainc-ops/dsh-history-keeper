@@ -70,7 +70,7 @@ soporta), y toda lectura re-verificada por hash antes de usarse.
   "plainSha256": "…",
   "prefixSha256": "…",
   "keyId": "…",
-  "alg": "chacha20poly1305",
+  "alg": "aes-256-gcm",
   "createdAt": "2026-10-21T…Z"
 }
 ```
@@ -186,3 +186,18 @@ El mismo motor alimenta los tres.
 | Sesión viva mientras se lee | leer sólo bytes confirmados por `sessionPersistence`/frame completo; nunca abrir en escritura |
 | Complejidad de claves | un solo `keyId` por store en v1.0; rotación documentada pero no automática |
 | Solo-dev vs cadencia del ecosistema | releases pequeñas y automatizadas; CI como única puerta |
+
+---
+
+## 8. Corrección de cifrado (22-oct-2026)
+
+La primera prueba de montaje real encontró que el plugin no podía abrir la bóveda aunque la
+frase era correcta. Causa: el plugin corre dentro de Electron, cuyo crypto es BoringSSL y **no
+expone `chacha20-poly1305`** (`crypto.getCiphers()` no devuelve ninguna entrada chacha), mientras
+que el Node del runtime sí. Un store sellado con un cifrado que el host no puede abrir se
+reporta como "frase incorrecta", que es un diagnóstico engañoso.
+
+Decisión: **AES-256-GCM** como AEAD por defecto (existe en ambos runtimes). El AEAD queda
+registrado en `meta.json`, se valida contra `getCiphers()` al abrir, y una prueba de CI falla si
+el AEAD por defecto no existe en el runtime. Los stores viejos con chacha siguen legibles donde
+el cifrado exista.
