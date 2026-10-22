@@ -17,7 +17,7 @@ import { initStore, openStore, readManifestChain } from '../lib/store.js'
 import { publishedState, snapshot } from '../lib/snapshot.js'
 import { verifyStore } from '../lib/verify.js'
 import { restore } from '../lib/restore.js'
-import { humanBytes, toIso } from '../lib/util.js'
+import { formatTime, humanBytes, toIso } from '../lib/util.js'
 
 const USAGE = `keeper — encrypted, verifiable history keeper for DeepSeek Harness
 
@@ -130,7 +130,7 @@ function main() {
       sessionIds: options.session.length > 0 ? options.session : null,
     })
     const lines = []
-    lines.push('snapshot ' + result.createdAt)
+    lines.push('snapshot ' + formatTime(result.createdAt))
     lines.push('  sessions captured: ' + result.sessions.length + '  chunks: ' + result.chunks + '  bytes: ' + humanBytes(result.bytes))
     for (const item of result.sessions) {
       lines.push('  + ' + item.sessionId + '  ' + item.chunks + ' chunk(s)  ' + humanBytes(item.bytes) + (item.tornTail ? '  (torn tail skipped)' : ''))
@@ -176,7 +176,7 @@ function main() {
     const lines = [
       'store    ' + store.dir,
       'device   ' + store.meta.deviceName + ' (' + store.meta.deviceId + ')',
-      'snapshots ' + chain.length + (result.lastManifestAt ? '  last ' + result.lastManifestAt : ''),
+      'snapshots ' + chain.length + (result.lastManifestAt ? '  last ' + formatTime(result.lastManifestAt) : ''),
       'published ' + publishSummary.sessions + ' session(s)  ' + publishSummary.frames + ' frame(s)  ' + humanBytes(publishSummary.bytes),
     ]
     print(result, options, lines.join('\n'))

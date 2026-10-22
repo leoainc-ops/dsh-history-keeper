@@ -69,6 +69,14 @@ The passphrase is never written into the patch: export `KEEPER_PASSPHRASE` (or s
 store, and a running host would not notice. It stays a CLI operation, with DSH closed —
 that is the whole point of a recovery tool.
 
+### Minimal setup
+
+Every key is optional. With no `config` at all, the plugin looks for a store at
+`~/.dsh/history-keeper`, reads sessions from `~/.dsh/sessions`, and tells you how to
+create the store when it is missing.
+
+Timestamps are stored in UTC (an instant must be unambiguous across machines) and
+rendered in your local time zone next to the offset.
 ## Design principles
 
 1. **No external binaries.** `node:` only — no `git`, no `age`, nothing to install.

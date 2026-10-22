@@ -69,6 +69,14 @@ La frase de paso nunca va en el patch: exportá `KEEPER_PASSPHRASE` (o usá
 vivo y un host en ejecución no lo notaría. Sigue siendo una operación de la CLI, con DSH
 cerrado — que es justamente el punto de una herramienta de recuperación.
 
+### Configuración mínima
+
+Todas las claves son opcionales. Sin `config`, el plugin busca la bóveda en
+`~/.dsh/history-keeper`, lee las sesiones de `~/.dsh/sessions`, y te dice cómo crear la
+bóveda si no existe.
+
+Las marcas de tiempo se guardan en UTC (un instante tiene que ser inequívoco entre
+máquinas) y se muestran en tu zona horaria local junto al desfase.
 ## Principios de diseño
 
 1. **Sin binarios externos.** Sólo `node:` — ni `git`, ni `age`, nada que instalar.

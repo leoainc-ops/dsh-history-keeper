@@ -155,3 +155,10 @@ Publicación: 0.1.0-rc.2 en npm (tag `latest`), 18 archivos, 70 kB. Un defecto d
 descripción del paquete (un reescritor propio la re-encodeó y npm mostró `Ã¢â‚¬â€`) obligó a
 republicar como rc.2 con la descripción en ASCII puro; se agregó una prueba de regresión que falla
 si vuelve a aparecer mojibake o si `lib/index.js` deja de declarar la misma versión que `package.json`.
+Fase B validada en el host real (22-oct): `/keeper status` con `hooks attached`, 12 snapshots
+automáticos, 5 sesiones y 1.861 frames capturados, `pending 0`. Hallazgo crítico de esa prueba:
+Electron/BoringSSL no expone chacha20-poly1305, corregido a AES-256-GCM (ver §8 del diseño).
+
+rc.7: las marcas de tiempo se guardan en UTC y se muestran en la zona local con el desfase, y
+todos los valores de configuración tienen default (`~/.dsh/history-keeper`, `~/.dsh/sessions`),
+así que instalar ya no exige editar el patch del perfil.
