@@ -1,0 +1,60 @@
+
+### Asignación archivo por archivo
+
+La regla que aplicamos:
+- **contenido textual/documentación original → CC BY-NC 4.0
+- código, configuración y scripts ejecutables → PolyForm Noncommercial.**
+
+**CC BY-NC 4.0 (documentación y textos originales)**
+
+| Archivo | Razón |
+|---|---|
+| `README.md` | Documentación textual |
+| `README-es.md` | Documentación textual |
+| `CHANGELOG.md` | Registro textual de cambios |
+| `docs/CLI.md` | Guía de uso del CLI |
+| `docs/DESIGN-v0.md` | Documento de diseño |
+| `docs/PLAN.md` | Planificación textual |
+| `.github/workflows/ci.yml` | *Ver nota abajo* |
+
+**PolyForm Noncommercial (código, configuración y scripts ejecutables)**
+
+| Archivo | Razón |
+|---|---|
+| `bin/keeper.js` | Ejecutable del CLI |
+| `lib/chunk.js` | Código fuente |
+| `lib/config.js` | Código fuente |
+| `lib/crypto.js` | Código fuente |
+| `lib/frames.js` | Código fuente |
+| `lib/index.js` | Código fuente |
+| `lib/plugin.js` | Código fuente |
+| `lib/restore.js` | Código fuente |
+| `lib/session-log.js` | Código fuente |
+| `lib/snapshot.js` | Código fuente |
+| `lib/store.js` | Código fuente |
+| `lib/util.js` | Código fuente |
+| `lib/verify.js` | Código fuente |
+| `scripts/guard-no-sessions.mjs` | Script ejecutable |
+| `test/*.mjs` (todos) | Código de pruebas ejecutable |
+| `test/helpers.js` | Código auxiliar de pruebas |
+| `cordis.patch.yml` | Configuración del plugin (software) |
+| `package.json` | Configuración del software |
+
+**Archivos que no son obra original tuya (no se licencian por tu parte)**
+
+| Archivo | Razón |
+|---|---|
+| `LICENSE` | Es el texto de la licencia en sí; se reemplaza, no se licencia |
+| `.gitignore` | Configuración técnica estándar; no es obra creativa original |
+| `.gitattributes` | Igual que el anterior; configuración técnica estándar |
+
+### Nota sobre `.github/workflows/ci.yml`
+
+Este archivo es un caso híbrido: es **configuración técnica** (define cómo se ejecuta la CI), pero su contenido es **texto declarativo en YAML**, no código ejecutable en el sentido estricto. Podrías asignarlo a cualquiera de las dos licencias sin problema legal. Mi recomendación práctica: **PolyForm Noncommercial**, porque forma parte de la infraestructura técnica del software y no es documentación para lectores humanos. Pero si prefieres tratarlo como "texto", CC BY-NC 4.0 también sería defendible. Lo importante es que sea coherente con el resto de la configuración.
+
+### Resumen numérico
+
+- **CC BY-NC 4.0**: 6 archivos (3 en raíz, 3 en `docs/`) + opcionalmente `ci.yml`.
+- **PolyForm Noncommercial**: 12 en `lib/`, 1 en `bin/`, 1 en `scripts/`, 12 en `test/` (contando `helpers.js`), más `cordis.patch.yml` y `package.json`. Total: 28 archivos.
+- **Sin licencia propia**: `LICENSE`, `.gitignore`, `.gitattributes`.
+
