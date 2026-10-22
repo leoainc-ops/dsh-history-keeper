@@ -66,7 +66,8 @@ test('a wrong passphrase names the source and the length it used', async (t) => 
 
   const status = await command.handler({ rawInput: 'status' })
   assert.equal(status.kind, 'error')
-  assert.match(status.text, /wrong passphrase for this store/)
+  assert.match(status.text, /wrong passphrase \(store /)
   assert.match(status.text, /source: file /)
-  assert.match(status.text, /\d+ characters\)/)
+  assert.match(status.text, /fingerprint [0-9a-f]{8}/)
+  assert.match(status.text, /\d+ chars/)
 })
