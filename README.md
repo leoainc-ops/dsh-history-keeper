@@ -116,6 +116,13 @@ npm run guard                   # refuses committed session logs
 Design notes and roadmap: [`docs/`](docs/). Release history, including versions that were
 never published and why: [CHANGELOG.md](CHANGELOG.md).
 
-## License
+## Licensing
 
-MIT
+This repository uses a split licensing model:
+
+- **Source code** (`bin/`, `lib/`, `scripts/`, `test/`, `package.json`, `cordis.patch.yml`): licensed under the **PolyForm Noncommercial License 1.0.0**. See [`LICENSE-CODE`](LICENSE-CODE).
+- **Documentation** (`README.md`, `README-es.md`, `CHANGELOG.md`, `docs/`): licensed under **CC BY-NC 4.0**. See [`LICENSE-DOCS`](LICENSE-DOCS).
+
+Commercial use of the source code is not permitted without explicit permission from the author.
+
+---
