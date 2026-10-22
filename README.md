@@ -113,7 +113,8 @@ node --test "test/*.test.mjs"   # unit tests, no dependencies to install
 npm run guard                   # refuses committed session logs
 ```
 
-Design notes and roadmap: [`docs/`](docs/).
+Design notes and roadmap: [`docs/`](docs/). Release history, including versions that were
+never published and why: [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

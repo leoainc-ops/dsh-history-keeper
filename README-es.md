@@ -113,7 +113,8 @@ node --test "test/*.test.mjs"   # tests unitarios, sin dependencias que instalar
 npm run guard                   # rechaza logs de sesión commiteados
 ```
 
-Diseño y hoja de ruta: [`docs/`](docs/).
+Diseño y hoja de ruta: [`docs/`](docs/). Historial de versiones, incluidas las que nunca se
+publicaron y por qué: [CHANGELOG.md](CHANGELOG.md).
 
 ## Licencia
 
