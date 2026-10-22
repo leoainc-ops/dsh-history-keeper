@@ -116,6 +116,11 @@ npm run guard                   # rechaza logs de sesión commiteados
 Diseño y hoja de ruta: [`docs/`](docs/). Historial de versiones, incluidas las que nunca se
 publicaron y por qué: [CHANGELOG.md](CHANGELOG.md).
 
-## Licencia
+## Licencias
 
-MIT
+Este repositorio utiliza un modelo de licencias dividido:
+
+- **Código fuente** (`bin/`, `lib/`, `scripts/`, `test/`, `package.json`, `cordis.patch.yml`): licenciado bajo **PolyForm Noncommercial License 1.0.0**. Ver [`LICENSE-CODE`](LICENSE-CODE).
+- **Documentación** (`README.md`, `README-es.md`, `CHANGELOG.md`, `docs/`): licenciado bajo **CC BY-NC 4.0**. Ver [`LICENSE-DOCS`](LICENSE-DOCS).
+
+El uso comercial del código fuente no está permitido sin permiso explícito del autor.
