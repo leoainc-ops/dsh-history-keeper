@@ -369,3 +369,8 @@ cabeza + cantidad de snapshots, e invalidación automática al escribir. Medici�
 manifiestos, frío) → 0 ms en caliente. `verify` lee siempre del disco (`{ fresh: true }`) para
 que una lectura cacheada no oculte un objeto borrado. La lectura fría de un proceso de CLI
 sigue pagándose; eso lo acota la compactación.
+**Estado 24-oct: tarea 5 hecha (rc.14).** Los adjuntos se capturan por referencia
+(`sha256:<64 hex>` en el log, blob en `<home>/attachments/v1/objects/<2 hex>/<hash>`), se
+verifican contra el hash de su nombre y se restauran en el layout del host sin sobrescribir.
+Una referencia sin blob o con contenido alterado se informa y no se captura. 8 tests nuevos;
+uno de ellos captura un adjunto real de 22 KB, lo restaura y compara byte a byte.

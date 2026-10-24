@@ -59,6 +59,7 @@ El YAML de abajo sobrescribe los valores por defecto:
         secretScan: true                         # cuarentena si parece haber una credencial
         secretScanAllow: []                      # ids de reglas a ignorar, p. ej. [openai-key]
         secretScanEntropy: false                 # cadenas largas de alta entropía (ruidoso)
+        captureAttachments: true                 # capturar los blobs que las sesiones referencian
         keyFile: C:\Users\vos\.dsh\history-keeper.key
         passphraseFile: null                     # gana sobre el archivo de clave y sobre la variable
         passphraseEnv: KEEPER_PASSPHRASE

@@ -13,6 +13,30 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.14 — 2026-10-24
+
+### Added
+
+- **Attachments are part of the history.** A pasted image or file lives outside the session
+  log: the log carries `"attachmentId": "sha256:<64 hex>"` and DSH keeps the blob under
+  `<home>/attachments/v1/objects/<first two hex>/<sha256>`. `snapshot` now reads the bytes it
+  is about to publish, finds the references and captures each blob **once** (content-addressed),
+  sealed like any other object. Only referenced blobs are captured, never the whole directory.
+  `verify` proves each blob still hashes to the name its session references, and `restore`
+  writes it back to the host's layout without ever overwriting a different file already there.
+  `--no-attachments` / `captureAttachments: false` turn it off.
+
+### Changed
+
+- The secret gate and attachment capture now share **one** decompression pass
+  (`lib/payload.js`), instead of decompressing the same bytes twice.
+
+### Note
+
+- A reference with no blob (`ATTACHMENT_MISSING`) or with content that no longer matches
+  (`ATTACHMENT_MISMATCH`) is reported, and the session is still published: the log is intact,
+  the blob is not. Restoring that session gives the conversation with a reference the host
+  cannot resolve, which is exactly what the vault then reports.
 ## 0.1.0-rc.13 — 2026-10-24
 
 ### Performance

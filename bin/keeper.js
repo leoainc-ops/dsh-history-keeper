@@ -15,7 +15,7 @@ import process from 'node:process'
 
 import { generatePassphraseFile, readPassphraseFile } from '../lib/config.js'
 import { initStore, openStore, readManifestChain } from '../lib/store.js'
-import { publishedState, snapshot } from '../lib/snapshot.js'
+import { publishedAttachments, publishedState, snapshot } from '../lib/snapshot.js'
 import { verifyStore } from '../lib/verify.js'
 import { restore } from '../lib/restore.js'
 import { formatTime, humanBytes, toIso } from '../lib/util.js'
@@ -45,6 +45,7 @@ snapshot options
   --max-chunk-bytes <n>    target chunk size (default 1048576)
   --min-interval <ms>      coalesce flushes per session (default 0: publish everything now)
   --no-secret-scan         publish even if a credential is detected (quarantine is the default)
+  --no-attachments         do not capture the blobs sessions reference
   --allow-rule <id>        disable one secret rule (repeatable)
   --force                  publish even inside the window, or past a quarantine
 
@@ -62,7 +63,7 @@ function parse(argv) {
       continue
     }
     const key = token.slice(2)
-    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'entropy') {
+    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy') {
       options[key] = true
       continue
     }
@@ -177,6 +178,7 @@ function main() {
       home,
       maxChunkBytes: options['max-chunk-bytes'] ? Number(options['max-chunk-bytes']) : undefined,
       sessionIds: options.session.length > 0 ? options.session : null,
+      captureAttachments: options['no-attachments'] !== true,
       minIntervalMs: options['min-interval'] ? Number(options['min-interval']) : 0,
       force: options.force === true,
       secretScan: options['no-secret-scan'] !== true,
@@ -195,6 +197,7 @@ function main() {
       lines.push('  quarantined ' + result.quarantined + ' session(s): nothing was published for them')
       lines.push('  publish anyway with --force, or disable one rule with --allow-rule <id>')
     }
+    if (result.attachments.length > 0) lines.push('  attachments: ' + result.attachments.length + ' blob(s)  ' + humanBytes(result.attachmentBytes))
     if (result.manifestSeq !== null) lines.push('  manifest: ' + result.manifestSeq)
     print(result, options, lines.join('\n'))
     if (result.problems.length > 0) process.exit(1)
@@ -204,7 +207,7 @@ function main() {
   if (command === 'verify') {
     const store = openFrom(options)
     const result = verifyStore(store)
-    const lines = ['verify: ' + (result.ok ? 'ok' : 'PROBLEMS') + '  sessions: ' + result.totals.sessions + '  frames: ' + result.totals.frames + '  bytes: ' + humanBytes(result.totals.bytes)]
+    const lines = ['verify: ' + (result.ok ? 'ok' : 'PROBLEMS') + '  sessions: ' + result.totals.sessions + '  frames: ' + result.totals.frames + '  bytes: ' + humanBytes(result.totals.bytes) + (result.totals.attachments > 0 ? '  attachments: ' + result.totals.attachments + ' (' + humanBytes(result.totals.attachmentBytes) + ')' : '')]
     for (const item of result.problems) lines.push('  ! ' + (item.sessionId ?? '?') + '  ' + item.code + ': ' + item.message)
     print(result, options, lines.join('\n'))
     if (!result.ok) process.exit(1)
@@ -215,6 +218,7 @@ function main() {
     const store = openFrom(options)
     const chain = readManifestChain(store)
     const published = publishedState(chain)
+    const blobs = publishedAttachments(chain)
     const publishSummary = [...published.values()].reduce((acc, entry) => {
       acc.sessions += 1
       acc.bytes += entry.bytes
@@ -229,6 +233,7 @@ function main() {
       snapshots: chain.length,
       lastManifestAt: chain.length > 0 ? chain[chain.length - 1].createdAt : null,
       published: publishSummary,
+      attachments: { blobs: blobs.size, bytes: [...blobs.values()].reduce((sum, entry) => sum + (entry.bytes ?? 0), 0) },
       checkedAt: toIso(),
     }
     const lines = [
@@ -236,6 +241,7 @@ function main() {
       'device   ' + store.meta.deviceName + ' (' + store.meta.deviceId + ')',
       'snapshots ' + chain.length + (result.lastManifestAt ? '  last ' + formatTime(result.lastManifestAt) : ''),
       'published ' + publishSummary.sessions + ' session(s)  ' + publishSummary.frames + ' frame(s)  ' + humanBytes(publishSummary.bytes),
+      'attachments ' + blobs.size + ' blob(s)  ' + humanBytes([...blobs.values()].reduce((sum, entry) => sum + (entry.bytes ?? 0), 0)),
     ]
     print(result, options, lines.join('\n'))
     return
@@ -249,9 +255,13 @@ function main() {
     for (const item of result.identical) lines.push('  = ' + item.sessionId + '  already present and identical')
     for (const item of result.setAside) lines.push('  ~ ' + item.sessionId + '  ' + item.message)
     for (const item of result.refused) lines.push('  ! ' + item.sessionId + '  ' + item.message + '  (' + item.target + ')')
+    for (const item of result.attachments ?? []) {
+      lines.push('  ' + (item.action === 'created' ? '+' : item.action === 'present' ? '=' : '~') + ' attachment ' + item.hash.slice(0, 12) + '…  ' + humanBytes(item.bytes) + '  ' + item.action)
+    }
     for (const item of result.problems) lines.push('  ! ' + (item.sessionId ?? '?') + '  ' + item.code + ': ' + item.message)
     const touched = result.created.length + result.identical.length + result.setAside.length + result.refused.length
     lines.push('  sessions considered: ' + touched)
+    if ((result.attachments ?? []).length > 0) lines.push('  attachments considered: ' + result.attachments.length)
     print(result, options, lines.join('\n'))
     if (result.refused.length > 0 || result.problems.length > 0) process.exit(1)
     return

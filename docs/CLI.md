@@ -37,6 +37,7 @@ from the environment variable named by `--passphrase-env`.
 | `--no-secret-scan` | `snapshot` | off | Publish even when a credential rule matches. The gate is on by default. |
 | `--allow-rule <id>` | `snapshot` | — | Disable one secret rule (repeatable), e.g. `--allow-rule secret-assignment`. |
 | `--entropy` | `snapshot` | off | Also flag long high-entropy runs. Noisy on tool output; off by default. |
+| `--no-attachments` | `snapshot` | off | Skip capturing the blobs the session references. Capture is on by default. |
 | `--dry-run` | `restore` | off | Print the plan and write nothing. |
 | `--force` | `snapshot`, `restore` | off | `snapshot`: publish inside the coalescing window, or past a quarantine. `restore`: when a different log already exists at the target, keep it and write the incoming copy alongside as `.incoming-<timestamp>`. It never overwrites. |
 | `--json` | all | off | Machine-readable output. Timestamps stay as raw ISO-8601 UTC in JSON; the human output renders them in local time. |
@@ -76,6 +77,23 @@ keeper status  --store ~/keeper-vault --json
 keeper restore --store ~/keeper-vault --home ~/.dsh --dry-run
 keeper restore --store ~/keeper-vault --home ~/.dsh
 ```
+
+## Attachments
+
+A pasted image or file is not inside the session log: the log only carries
+`"attachmentId": "sha256:<64 hex>"`, and DSH keeps the blob under
+`<home>/attachments/v1/objects/<first two hex>/<sha256>`.
+
+`snapshot` reads the bytes it is about to publish, finds the references, and captures each
+blob **once** (they are content-addressed), sealed like any other object. Only referenced
+blobs are captured, never the whole directory. A reference whose blob is missing
+(`ATTACHMENT_MISSING`) or whose content no longer hashes to its name
+(`ATTACHMENT_MISMATCH`) is reported; the session is still published, because the log is
+intact and the blob is not.
+
+`verify` decrypts each captured blob and proves it still hashes to the name the session
+references. `restore` writes them back to the same layout and never overwrites a different
+file already on disk (`ATTACHMENT_CONFLICT`).
 
 ## The secret gate
 

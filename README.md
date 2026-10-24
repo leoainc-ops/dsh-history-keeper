@@ -17,6 +17,11 @@ prove the copy you do have is intact.
 `dsh-history-keeper` exists to fix that: capture the history, encrypt it, verify it, and
 restore it — byte for byte.
 
+That includes the **attachments**: a pasted image or file lives outside the session log, in
+`~/.dsh/attachments`. When a captured session references one, the blob is captured with it,
+verified against the hash its name claims, and restored next to the conversation. A history
+without the images you pasted is an incomplete history.
+
 ## What it will do
 
 | Milestone | Delivers |
@@ -62,6 +67,7 @@ No profile patch is required. The YAML below exists only to override the default
         secretScan: true                         # quarantine a session that looks like it holds a credential
         secretScanAllow: []                      # rule ids to ignore, e.g. [openai-key]
         secretScanEntropy: false                 # long high-entropy runs (noisy; off by default)
+        captureAttachments: true                 # capture the blobs sessions reference
         keyFile: C:\Users\you\.dsh\history-keeper.key
         passphraseFile: null                     # wins over the key file and the env var
         passphraseEnv: KEEPER_PASSPHRASE
