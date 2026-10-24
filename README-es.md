@@ -125,3 +125,11 @@ Este repositorio utiliza un modelo de licencias dividido:
 - **Documentación** (`README.md`, `README-es.md`, `CHANGELOG.md`, `docs/`): licenciado bajo **CC BY-NC 4.0**. Ver [`LICENSE-DOCS`](LICENSE-DOCS).
 
 El uso comercial del código fuente no está permitido sin permiso explícito del autor.
+
+### Historial de licencias
+
+Las versiones `0.1.0-rc.1` a `0.1.0-rc.7` se publicaron bajo **MIT** y siguen disponibles bajo
+MIT para quien las haya obtenido. El modelo dividido rige desde `0.1.0-rc.9`; `0.1.0-rc.8` se
+publicó con metadata MIT por error y está deprecada. No hay forks del proyecto al 2026-10-24.
+Cronología completa, estado de forks y condiciones para contribuir:
+[`LICENSING-HISTORY.md`](LICENSING-HISTORY.md).

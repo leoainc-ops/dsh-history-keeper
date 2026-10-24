@@ -125,4 +125,12 @@ This repository uses a split licensing model:
 
 Commercial use of the source code is not permitted without explicit permission from the author.
 
+### License history
+
+Versions `0.1.0-rc.1` through `0.1.0-rc.7` were published under **MIT** and remain available
+under MIT for whoever obtained them. The split model above applies from `0.1.0-rc.9` onward;
+`0.1.0-rc.8` was published with MIT metadata by mistake and is deprecated. There are no forks
+of this project as of 2026-10-24. Full timeline, fork status and contribution terms:
+[`LICENSING-HISTORY.md`](LICENSING-HISTORY.md).
+
 ---

@@ -1,6 +1,6 @@
 {
   "name": "dsh-history-keeper",
-  "version": "0.1.0-rc.9",
+  "version": "0.1.0-rc.10",
   "description": "Encrypted, verifiable history keeper for DeepSeek Harness: snapshot, verify and restore your sessions. No git, no external binaries.",
   "type": "module",
   "main": "lib/index.js",
@@ -22,7 +22,8 @@
     "LICENSE",
     "LICENSE-CODE",
     "LICENSE-DOCS",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "LICENSING-HISTORY.md"
   ],
   "engines": {
     "node": "^22.19.0 || >=24.0.0",

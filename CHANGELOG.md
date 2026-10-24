@@ -13,6 +13,20 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.10 — 2026-10-24
+
+### Licensing, made unambiguous
+
+- `LICENSE` is now a short index: code → `LICENSE-CODE` (PolyForm Noncommercial 1.0.0, with its
+  Required Notice and canonical URL), documentation → `LICENSE-DOCS` (CC BY-NC 4.0), history →
+  `LICENSING-HISTORY.md`. The full license text still lives in `LICENSE-CODE`; nothing in the
+  terms changed.
+- New [`LICENSING-HISTORY.md`](LICENSING-HISTORY.md) records, version by version, which license
+  applied: `rc.1`–`rc.7` were published under **MIT** and stay MIT for whoever obtained them;
+  `rc.8` was published after the relicensing but with MIT metadata by mistake and is
+  deprecated; from `rc.9` the split model applies. It also states that there are **no forks**
+  of either repository as of 2026-10-24, and how contributions are licensed.
+- Both READMEs gained a "License history" section linking to that document.
 ## 0.1.0-rc.9 — 2026-10-22
 
 ### Licensing (project-level change)
