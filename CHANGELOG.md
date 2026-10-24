@@ -13,6 +13,29 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.9 — 2026-10-22
+
+### Licensing (project-level change)
+
+- The repository now uses **split licensing**, decided and committed directly on GitHub:
+  source code under **PolyForm Noncommercial 1.0.0** (`LICENSE-CODE`), documentation under
+  **CC BY-NC 4.0** (`LICENSE-DOCS`). Commercial use of the code requires the author's
+  permission.
+
+### Fixed
+
+- `package.json` still declared `MIT` after that change and shipped neither license file. It
+  now declares `SEE LICENSE IN LICENSE-CODE` and publishes `LICENSE`, `LICENSE-CODE`,
+  `LICENSE-DOCS` and `CHANGELOG.md` in the tarball.
+- Both READMEs linked to `LICENSE-CODE`, which did not exist. The file now exists and carries
+  the PolyForm text with its Required Notice.
+- `docs/PLAN.md` still mentioned an MIT license in the bootstrap checklist.
+
+### Note
+
+- `0.1.0-rc.8` was published with `license: MIT` metadata before the change was noticed. It
+  contains the same code. `rc.9` is identical apart from the corrected metadata, and `rc.8` is
+  deprecated with a pointer to it.
 ## 0.1.0-rc.8 — 2026-10-22
 
 ### Added

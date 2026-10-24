@@ -121,7 +121,7 @@ Las fases C y D pueden solaparse una semana si la captura automática ya es esta
 
 ## 6. Primeras cinco tareas (S1)
 
-1. Crear el repo público `dsh-history-keeper` con topic `dsh-plugin`, licencia MIT y CI mínimo.
+1. Crear el repo público `dsh-history-keeper` con topic `dsh-plugin`, licencias declaradas (código y docs) y CI mínimo.
 2. Publicar `dsh-history-keeper@0.0.1` vacío para reservar el nombre en npm.
 3. Portar el escáner de frames y el verificador ya probados (v1) a `lib/`, con tests.
 4. Implementar `snapshot` contra una carpeta y una sesión real; comprobar que el objeto

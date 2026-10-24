@@ -1,6 +1,6 @@
 {
   "name": "dsh-history-keeper",
-  "version": "0.1.0-rc.8",
+  "version": "0.1.0-rc.9",
   "description": "Encrypted, verifiable history keeper for DeepSeek Harness: snapshot, verify and restore your sessions. No git, no external binaries.",
   "type": "module",
   "main": "lib/index.js",
@@ -19,7 +19,10 @@
     "cordis.patch.yml",
     "README.md",
     "README-es.md",
-    "LICENSE"
+    "LICENSE",
+    "LICENSE-CODE",
+    "LICENSE-DOCS",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": "^22.19.0 || >=24.0.0",
@@ -43,7 +46,7 @@
     "encryption",
     "cross-device"
   ],
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE-CODE",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/leoainc-ops/dsh-history-keeper.git"
