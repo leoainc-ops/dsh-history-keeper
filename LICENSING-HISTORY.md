@@ -18,15 +18,17 @@ issue titled *"commercial license"* to start that conversation.
 
 Dates are local to the author (UTC−03). npm publishes are UTC in the registry.
 
-| Date | Event | License of the published artifact |
+| Date and time (UTC) | Event | License of the published artifact |
 |---|---|---|
-| 2026-10-21 | `0.1.0-rc.1`, `rc.2`, `rc.3` published | MIT |
-| 2026-10-22 04:10 UTC | `0.1.0-rc.7` published (last release before the change) | MIT |
-| 2026-10-22 12:15–13:32 | **Repository relicensed** (`5442ecd` … `047bc46`): top-level `LICENSE` renamed and replaced, `LICENSE-DOCS` added, READMEs updated | repository files: PolyForm Noncommercial + CC BY-NC |
-| 2026-10-22 03:33 UTC | `0.1.0-rc.6` published | MIT |
-| 2026-10-23 22:57 | `0.1.0-rc.8` published — **defect**: the code already came from the relicensed repository, but `package.json` still declared MIT, so npm recorded it as MIT. Deprecated by the author in favour of `rc.9` | declared MIT (unintentionally) |
-| 2026-10-23 23:08 | `0.1.0-rc.9` published with corrected metadata: `SEE LICENSE IN LICENSE-CODE` | split model |
-| 2026-10-24 | `0.1.0-rc.10`: `LICENSE` becomes a short index and this document ships inside the package | split model |
+| 2026-10-21 20:43 | `0.1.0-rc.1` published | MIT |
+| 2026-10-21 20:47 | `0.1.0-rc.2` published | MIT |
+| 2026-10-21 20:56 | `0.1.0-rc.3` published | MIT |
+| 2026-10-22 03:33 | `0.1.0-rc.6` published | MIT |
+| 2026-10-22 04:10 | `0.1.0-rc.7` published — last release before the change | MIT |
+| 2026-10-22 15:15–16:32 | **Repository relicensed** (`5442ecd` … `047bc46`): top-level `LICENSE` renamed and replaced, `LICENSE-DOCS` added, READMEs updated | repository files: PolyForm Noncommercial + CC BY-NC |
+| 2026-10-24 01:57 | `0.1.0-rc.8` published — **defect**: the code already came from the relicensed repository, but `package.json` still declared MIT, so npm recorded it as MIT. Deprecated by the author in favour of `rc.9` | declared MIT (unintentionally) |
+| 2026-10-24 02:08 | `0.1.0-rc.9` published with corrected metadata: `SEE LICENSE IN LICENSE-CODE` | split model |
+| 2026-10-24 03:37 | `0.1.0-rc.10`: `LICENSE` becomes a short index, this document ships inside the package | split model |
 
 `0.0.0-stage` is not a release. It is the placeholder npm 11 creates while a publish is being
 processed; it carries no code and no license field.

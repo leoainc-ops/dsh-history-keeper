@@ -13,6 +13,13 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.11 — 2026-10-24
+
+### Fixed
+
+- `LICENSING-HISTORY.md` mixed local and UTC times and listed `rc.6` after the relicensing
+  row it preceded. Every timestamp is now UTC and the table is strictly chronological. In a
+  document that exists to remove doubt about which license applies, a wrong order is a defect.
 ## 0.1.0-rc.10 — 2026-10-24
 
 ### Licensing, made unambiguous
