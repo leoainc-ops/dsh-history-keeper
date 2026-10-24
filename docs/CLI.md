@@ -1,4 +1,4 @@
-# CLI reference — `keeper`
+﻿# CLI reference — `keeper`
 
 `keeper` works with **no DSH running and nothing but Node installed**. That is deliberate:
 the scenario this tool exists for is the one where the host is gone, so the recovery path
@@ -29,6 +29,7 @@ from the environment variable named by `--passphrase-env`.
 | `--store <dir>` | all except `help` | — | Store directory (the vault). |
 | `--home <dir>` | `snapshot`, `restore` | `$DSH_HOME` or `~/.dsh` | DSH home. `snapshot` reads `<home>/sessions`; `restore` writes into it. |
 | `--passphrase-env <name>` | all except `help` | `KEEPER_PASSPHRASE` | Name of the environment variable holding the passphrase (minimum 8 characters). |
+| `--key-file <path>` | all | `~/.dsh/history-keeper.key` | Single-line passphrase file. `init` writes a generated passphrase here when neither the env var nor the file provides one. |
 | `--device-name <name>` | `init` | hostname | Label stored in `meta.json`; it identifies the machine that produced the snapshots. |
 | `--session <id>` | `snapshot` | all sessions | Limit the capture to one session. Repeatable. |
 | `--max-chunk-bytes <n>` | `snapshot` | `1048576` | Target chunk size. Frames are never split, so a single large frame wins over this target. |

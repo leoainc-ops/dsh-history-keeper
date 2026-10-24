@@ -13,6 +13,7 @@ import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 
+import { generatePassphraseFile, readPassphraseFile } from '../lib/config.js'
 import { initStore, openStore, readManifestChain } from '../lib/store.js'
 import { publishedState, snapshot } from '../lib/snapshot.js'
 import { verifyStore } from '../lib/verify.js'
@@ -24,7 +25,7 @@ const USAGE = `keeper — encrypted, verifiable history keeper for DeepSeek Harn
 usage: keeper <command> --store <dir> [options]
 
 commands
-  init       create a new store                     (needs --home to exist)
+  init       create a new store (generates a key file when no passphrase is set)
   snapshot   capture new session bytes into the store
   verify     check every object, hash and chain
   status     what the store holds and what is unpublished
@@ -78,20 +79,42 @@ function defaultHome() {
   return process.env.DSH_HOME || path.join(os.homedir(), '.dsh')
 }
 
-function passphraseFrom(options) {
+/** Where `init` writes a generated passphrase when the operator has not set one. */
+function defaultKeyFile() {
+  return path.join(os.homedir(), '.dsh', 'history-keeper.key')
+}
+
+/**
+ * Resolve the passphrase: environment variable first (an explicit choice), then a key
+ * file, and on `init` a freshly generated key written to the key file.
+ * @param {any} options
+ * @param {{allowGenerate?: boolean}} [behaviour]
+ * @returns {{passphrase: string, source: string, generated: string|null}}
+ */
+function passphraseFrom(options, behaviour = {}) {
   const name = options['passphrase-env'] ?? 'KEEPER_PASSPHRASE'
-  const value = process.env[name]
-  if (!value) {
-    fail('passphrase not set: export ' + name + '=<your passphrase> (minimum 8 characters)')
+  const fromEnv = process.env[name]
+  if (fromEnv && fromEnv.length >= 8) return { passphrase: fromEnv, source: 'env ' + name, generated: null }
+  if (fromEnv) fail('the passphrase in $' + name + ' is shorter than 8 characters')
+
+  const keyFile = path.resolve(options['key-file'] ?? defaultKeyFile())
+  const file = readPassphraseFile(keyFile)
+  if (file.passphrase) return { passphrase: file.passphrase, source: 'key file ' + keyFile, generated: null }
+  if (file.reason && !/cannot read/u.test(file.reason)) fail(file.reason + ': ' + keyFile)
+
+  if (behaviour.allowGenerate) {
+    const generated = generatePassphraseFile(keyFile)
+    return { passphrase: generated.passphrase, source: 'generated key file ' + keyFile, generated: keyFile }
   }
-  return value
+
+  fail('passphrase not set: export ' + name + '=<passphrase>, or pass --key-file <path>, or run: keeper init')
 }
 
 function openFrom(options) {
   const store = options.store
   if (!store) fail('--store <dir> is required')
   if (!fs.existsSync(path.join(store, 'meta.json'))) fail('no keeper store at ' + store)
-  return openStore(path.resolve(store), passphraseFrom(options))
+  return openStore(path.resolve(store), passphraseFrom(options).passphrase)
 }
 
 function print(result, options, text) {
@@ -105,11 +128,10 @@ function main() {
   const home = path.resolve(options.home ?? defaultHome())
 
   if (command === 'init') {
-    const store = options.store
-    if (!store) fail('--store <dir> is required')
-    const passphrase = passphraseFrom(options)
+    const store = options.store ?? path.join(os.homedir(), '.dsh', 'history-keeper')
+    const pass = passphraseFrom(options, { allowGenerate: true })
     const created = initStore(path.resolve(store), {
-      passphrase,
+      passphrase: pass.passphrase,
       deviceName: options['device-name'] ?? os.hostname(),
     })
     const result = {
@@ -120,8 +142,27 @@ function main() {
       deviceName: created.meta.deviceName,
       kdf: created.meta.kdf.alg,
       aead: created.meta.aead,
+      passphraseSource: pass.source,
+      generatedKeyFile: pass.generated,
     }
-    print(result, options, 'store created at ' + created.dir + '\n  device: ' + created.meta.deviceName + ' (' + created.meta.deviceId + ')')
+    const lines = [
+      'store created at ' + created.dir,
+      '  device: ' + created.meta.deviceName + ' (' + created.meta.deviceId + ')',
+      '  cipher: ' + created.meta.aead,
+      '  passphrase source: ' + pass.source,
+    ]
+    if (pass.generated) {
+      lines.push(
+        '',
+        'A passphrase was generated and written to:',
+        '  ' + pass.generated,
+        '',
+        'It is not printed on purpose: terminal output ends up in logs and transcripts.',
+        'Copy that file into a password manager and keep it away from the vault itself.',
+        'Without it the vault cannot be opened — there is no recovery path.',
+      )
+    }
+    print(result, options, lines.join('\n'))
     return
   }
 

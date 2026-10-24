@@ -42,7 +42,8 @@ sobrescribe un log existente.
 
 ## Uso dentro de DSH
 
-Instalá el bundle y apuntá la fila a tu bóveda en el patch del perfil:
+Instalá el bundle y corré `/keeper init` una vez, en cualquier conversación. Eso es todo: crea la bóveda (por defecto `~/.dsh/history-keeper`), genera una frase si no elegiste una, y la escribe en `~/.dsh/history-keeper.key`. No hace falta editar el patch del perfil; el YAML de abajo sólo sobrescribe los valores por defecto.
+El YAML de abajo sobrescribe los valores por defecto:
 
 ```yaml
 - insert:

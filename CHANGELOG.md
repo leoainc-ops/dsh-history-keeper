@@ -13,6 +13,20 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.8 — 2026-10-22
+
+### Added
+- `/keeper init` and `keeper init` provision the vault with no configuration at all: they
+  create the default store (`~/.dsh/history-keeper`) and, when no passphrase is configured,
+  generate one (32 characters) into `~/.dsh/history-keeper.key`. The passphrase is never
+  printed, because command output ends up in transcripts and logs.
+- `--key-file <path>` on every CLI command; `init` writes a generated key there.
+- Passphrase resolution is now: configured file → key file → environment variable, and
+  `status` always reports which source was used.
+
+### Changed
+- A missing passphrase now points at `/keeper init` instead of asking the operator to export
+  an environment variable.
 ## 0.1.0-rc.7 — 2026-10-22
 
 ### Changed
