@@ -15,7 +15,7 @@ import process from 'node:process'
 
 import { generatePassphraseFile, readPassphraseFile } from '../lib/config.js'
 import { initStore, openStore, readManifestChain } from '../lib/store.js'
-import { publishedAttachments, publishedState, snapshot } from '../lib/snapshot.js'
+import { backfillAttachments, publishedAttachments, publishedState, snapshot } from '../lib/snapshot.js'
 import { verifyStore } from '../lib/verify.js'
 import { restore } from '../lib/restore.js'
 import { formatTime, humanBytes, toIso } from '../lib/util.js'
@@ -27,6 +27,7 @@ usage: keeper <command> --store <dir> [options]
 commands
   init       create a new store (generates a key file when no passphrase is set)
   snapshot   capture new session bytes into the store
+  attachments  capture blobs referenced by already-published sessions
   verify     check every object, hash and chain
   status     what the store holds and what is unpublished
   restore    rebuild a DSH home from the store
@@ -211,6 +212,30 @@ function main() {
     for (const item of result.problems) lines.push('  ! ' + (item.sessionId ?? '?') + '  ' + item.code + ': ' + item.message)
     print(result, options, lines.join('\n'))
     if (!result.ok) process.exit(1)
+    return
+  }
+
+  if (command === 'attachments') {
+    const store = openFrom(options)
+    const report = backfillAttachments(store, {
+      home,
+      dryRun: Boolean(options['dry-run']),
+      attachmentsRoot: options['attachments-root'] ?? null,
+    })
+    const lines = [
+      'attachments backfill' + (report.dryRun ? '  (dry run)' : ''),
+      '  sessions scanned: ' + report.scanned,
+      '  references without a captured blob: ' + report.found.length,
+      '  captured now: ' + report.captured.length + (report.manifestSeq !== null ? '  manifest: ' + report.manifestSeq : ''),
+    ]
+    for (const item of report.captured) lines.push('  + ' + item.hash.slice(0, 12) + '…  ' + humanBytes(item.bytes))
+    for (const item of report.found) {
+      if (!report.captured.some((entry) => entry.hash === item.hash)) lines.push('  · ' + item.hash.slice(0, 12) + '…  would be captured')
+    }
+    for (const item of report.missing) lines.push('  ! ' + item.hash.slice(0, 12) + '…  referenced but not on disk (session ' + item.sessionId + ')')
+    for (const item of report.problems) lines.push('  ! ' + (item.hash ?? item.sessionId ?? '?') + '  ' + item.code + ': ' + item.message)
+    print(report, options, lines.join('\n'))
+    if (report.problems.length > 0 || report.missing.length > 0) process.exit(1)
     return
   }
 

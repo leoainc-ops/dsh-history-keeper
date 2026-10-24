@@ -95,6 +95,21 @@ intact and the blob is not.
 references. `restore` writes them back to the same layout and never overwrites a different
 file already on disk (`ATTACHMENT_CONFLICT`).
 
+## Backfilling attachments
+
+Incremental capture only inspects the bytes it is about to publish. A session published
+before attachment support existed keeps its references pointing nowhere, and no future
+capture will revisit those bytes. `keeper attachments` closes that gap explicitly:
+
+```sh
+keeper attachments --store ~/keeper-vault --home ~/.dsh --dry-run
+keeper attachments --store ~/keeper-vault --home ~/.dsh
+```
+
+It reconstructs every published session once, collects the `sha256:` references, and captures
+the blobs that are missing from the vault. Idempotent: running it again captures nothing.
+A reference whose blob is no longer on disk is reported and makes the command exit non-zero.
+
 ## The secret gate
 
 Before a chunk is sealed, `snapshot` decompresses the bytes it is about to publish and scans

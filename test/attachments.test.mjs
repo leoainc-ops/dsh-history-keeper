@@ -6,7 +6,7 @@ import test from 'node:test'
 
 import { findAttachmentRefs, resolveAttachment } from '../lib/attachments.js'
 import { restore } from '../lib/restore.js'
-import { snapshot } from '../lib/snapshot.js'
+import { snapshot, backfillAttachments } from '../lib/snapshot.js'
 import { initStore, openStore, writeManifest } from '../lib/store.js'
 import { verifyStore } from '../lib/verify.js'
 import { makeLog, removeDir, tempDir, writeSession } from './helpers.js'
@@ -161,4 +161,31 @@ test('a manifest without an attachments map still reads', (t) => {
   const snap = snapshot(store, { home, now: '2026-10-24T10:00:00.000Z' })
   assert.equal(snap.attachments.length, 0)
   assert.equal(verifyStore(store).totals.attachments, 0)
+})
+
+test('backfill captures a blob referenced only by an already-published session', (t) => {
+  const { home, store } = setup(t)
+  const bytes = randomBytes(2048)
+  const hash = createHash('sha256').update(bytes).digest('hex')
+  // Publish the session while the blob does not exist yet.
+  writeSession(home, { id: 's1', log: logReferencing(hash) })
+  const first = snapshot(store, { home, now: '2026-10-24T10:00:00.000Z' })
+  assert.equal(first.problems[0].code, 'ATTACHMENT_MISSING')
+
+  // The blob appears afterwards; the incremental path will never see that reference again.
+  putBlob(home, bytes)
+  const dry = backfillAttachments(store, { home, dryRun: true })
+  assert.equal(dry.found.length, 1)
+  assert.equal(dry.captured.length, 0, 'a dry run writes nothing')
+  assert.equal(verifyStore(store).totals.attachments, 0)
+
+  const real = backfillAttachments(store, { home })
+  assert.equal(real.captured.length, 1)
+  assert.equal(real.captured[0].hash, hash)
+  const verified = verifyStore(store)
+  assert.equal(verified.ok, true, JSON.stringify(verified.problems))
+  assert.equal(verified.totals.attachments, 1)
+
+  // Idempotent: nothing left to capture.
+  assert.equal(backfillAttachments(store, { home }).captured.length, 0)
 })

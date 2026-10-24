@@ -13,6 +13,20 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.16 — 2026-10-24
+
+### Added
+
+- **`keeper attachments`** backfills the blobs of sessions that were published before
+  attachment support existed. Incremental capture only looks at the bytes it is about to
+  publish, so a reference that appeared in earlier bytes would never be seen again; the
+  command reconstructs each published session once, finds its references and captures the
+  blobs that are still missing. `--dry-run` lists them without writing; it is idempotent.
+
+### Note
+
+- A reference whose blob is gone from disk is listed as `referenced but not on disk`, and the
+  command exits non-zero: that is data the vault cannot recover.
 ## 0.1.0-rc.15 — 2026-10-24
 
 ### Fixed
