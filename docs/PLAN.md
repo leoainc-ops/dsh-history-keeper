@@ -374,3 +374,12 @@ sigue pagándose; eso lo acota la compactación.
 verifican contra el hash de su nombre y se restauran en el layout del host sin sobrescribir.
 Una referencia sin blob o con contenido alterado se informa y no se captura. 8 tests nuevos;
 uno de ellos captura un adjunto real de 22 KB, lo restaura y compara byte a byte.
+**Estado 24-oct (rc.15/rc.16): dos falsos positivos del filtro y un hueco real.** El gate
+cuarentenó esta misma conversación dos veces: primero por `PASSPHRASE = '<valor con test>'` en
+una constante de test (corregido en rc.15: las reglas ignoran valores con marcadores
+`test/example/fake/…`), y después por mis fixtures de test que contenían literales con forma de
+clave (corregido construyéndolos en tiempo de ejecución, para que el archivo nunca contenga la
+cadena). Además se descubrió que la captura incremental **nunca revisita bytes ya publicados**,
+así que una referencia vieja nunca se capturaba: `keeper attachments` (rc.16) reconstruye cada
+sesión publicada y captura los blobs faltantes. Sobre la bóveda real: 1 blob de 22,2 KiB
+capturado, `verify` ok con 5 sesiones / 3.162 frames / 4,5 MiB + 1 adjunto.
