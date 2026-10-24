@@ -13,6 +13,36 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.17 — 2026-10-24
+
+### Added
+
+- **Checkpoints (compaction).** A checkpoint is one manifest that carries every chunk
+  descriptor accumulated so far — every hash, every byte range — and starts a fresh chain.
+  The next chain read is one file instead of hundreds, while `verify`, `restore`,
+  `publishedState` and attachment capture keep working unchanged, because a checkpoint looks
+  like a large manifest. What it gives up is *which snapshot added which chunk*: that
+  provenance stays in the old manifests, which remain on disk as unreferenced objects.
+  `keeper compact [--dry-run]`.
+- **Deterministic policy** (`lib/policy.js`). Compaction is decided from the store's own
+  shape — manifests since the last checkpoint, chunks the checkpoint would carry, store size,
+  free space — and every decision carries its reason. Hard bounds: it refuses to build a
+  checkpoint above the chunk cap or when free space is below a factor of the store size. A
+  local model may propose parameters one day; this function decides.
+- **`keeper gc [--yes]`.** Deletes objects the current chain no longer references. Chunk and
+  attachment objects are always referenced by the checkpoint, so in practice it removes
+  superseded manifests. Dry run by default; it refuses to delete without `--yes`.
+
+### Changed
+
+- The plugin compacts automatically after a snapshot when the policy says so
+  (`autoCompact`, `compactMinManifests`, default 50), and `/keeper status` shows whether the
+  chain starts at a checkpoint and when auto-compaction is armed.
+
+### Note
+
+- Old manifests are kept until an explicit `gc`, so a checkpoint never destroys the record of
+  how the history was built — it only stops reading it.
 ## 0.1.0-rc.16 — 2026-10-24
 
 ### Added

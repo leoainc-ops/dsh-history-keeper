@@ -68,6 +68,8 @@ No profile patch is required. The YAML below exists only to override the default
         secretScanAllow: []                      # rule ids to ignore, e.g. [openai-key]
         secretScanEntropy: false                 # long high-entropy runs (noisy; off by default)
         captureAttachments: true                 # capture the blobs sessions reference
+        autoCompact: true                        # checkpoint the chain when the policy approves
+        compactMinManifests: 50                  # manifests since the last checkpoint before it acts
         keyFile: C:\Users\you\.dsh\history-keeper.key
         passphraseFile: null                     # wins over the key file and the env var
         passphraseEnv: KEEPER_PASSPHRASE

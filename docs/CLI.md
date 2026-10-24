@@ -95,6 +95,29 @@ intact and the blob is not.
 references. `restore` writes them back to the same layout and never overwrites a different
 file already on disk (`ATTACHMENT_CONFLICT`).
 
+## Compaction and garbage collection
+
+Reading the manifest chain costs one file per manifest, so a vault with hundreds of captures
+takes seconds to answer any question. A **checkpoint** is a single manifest that carries every
+chunk descriptor accumulated so far — all hashes, all byte ranges — and starts a fresh chain.
+
+```sh
+keeper compact --store ~/keeper-vault --dry-run   # what it would do
+keeper compact --store ~/keeper-vault             # write the checkpoint
+keeper gc      --store ~/keeper-vault             # count unreferenced objects (dry run)
+keeper gc      --store ~/keeper-vault --yes       # delete them
+```
+
+What compaction keeps: the bytes, every chunk hash, the prefix/end chain that proves
+continuity, and the attachments. What it gives up: which snapshot added which chunk — that
+provenance lives in the old manifests, which stay on disk until `gc`. `gc` only deletes
+objects the current chain does not reference; chunk and attachment objects are always
+referenced by the checkpoint, so in practice it removes superseded manifests.
+
+The plugin compacts on its own only when the policy approves, and the policy explains itself:
+manifests since the last checkpoint, chunks the checkpoint would carry, store size and free
+space, each with a hard bound. Set `autoCompact: false` to keep compaction a command you run.
+
 ## Backfilling attachments
 
 Incremental capture only inspects the bytes it is about to publish. A session published

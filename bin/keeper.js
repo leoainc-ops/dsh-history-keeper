@@ -15,6 +15,7 @@ import process from 'node:process'
 
 import { generatePassphraseFile, readPassphraseFile } from '../lib/config.js'
 import { initStore, openStore, readManifestChain } from '../lib/store.js'
+import { collectGarbage, compact } from '../lib/compact.js'
 import { backfillAttachments, publishedAttachments, publishedState, snapshot } from '../lib/snapshot.js'
 import { verifyStore } from '../lib/verify.js'
 import { restore } from '../lib/restore.js'
@@ -28,6 +29,8 @@ commands
   init       create a new store (generates a key file when no passphrase is set)
   snapshot   capture new session bytes into the store
   attachments  capture blobs referenced by already-published sessions
+  compact    replace the manifest chain with one checkpoint
+  gc         delete objects the chain no longer references (needs --yes)
   verify     check every object, hash and chain
   status     what the store holds and what is unpublished
   restore    rebuild a DSH home from the store
@@ -64,7 +67,7 @@ function parse(argv) {
       continue
     }
     const key = token.slice(2)
-    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy') {
+    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes') {
       options[key] = true
       continue
     }
@@ -236,6 +239,34 @@ function main() {
     for (const item of report.problems) lines.push('  ! ' + (item.hash ?? item.sessionId ?? '?') + '  ' + item.code + ': ' + item.message)
     print(report, options, lines.join('\n'))
     if (report.problems.length > 0 || report.missing.length > 0) process.exit(1)
+    return
+  }
+
+  if (command === 'compact') {
+    const store = openFrom(options)
+    const result = compact(store, { dryRun: Boolean(options['dry-run']) })
+    const lines = [
+      'compaction' + (result.dryRun ? '  (dry run)' : ''),
+      '  manifests before: ' + result.manifestsBefore + '  after: ' + result.manifestsAfter,
+      '  chunks carried by the checkpoint: ' + result.chunks,
+      '  ' + (result.reason ?? (result.compacted ? 'checkpoint written' : 'nothing to do')) +
+        (result.manifestSeq !== undefined ? '  manifest: ' + result.manifestSeq : ''),
+    ]
+    print(result, options, lines.join('\n'))
+    return
+  }
+
+  if (command === 'gc') {
+    const store = openFrom(options)
+    const dryRun = options.yes !== true
+    const report = collectGarbage(store, { dryRun, yes: options.yes === true })
+    const lines = [
+      'garbage collection' + (dryRun ? '  (dry run: pass --yes to delete)' : ''),
+      '  objects present: ' + report.present + '  referenced: ' + report.kept,
+      '  unreferenced: ' + report.removable + '  bytes: ' + humanBytes(report.bytes),
+      dryRun ? '  nothing was deleted' : '  deleted: ' + report.deleted,
+    ]
+    print(report, options, lines.join('\n'))
     return
   }
 
