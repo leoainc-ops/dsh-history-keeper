@@ -383,3 +383,13 @@ cadena). Además se descubrió que la captura incremental **nunca revisita bytes
 así que una referencia vieja nunca se capturaba: `keeper attachments` (rc.16) reconstruye cada
 sesión publicada y captura los blobs faltantes. Sobre la bóveda real: 1 blob de 22,2 KiB
 capturado, `verify` ok con 5 sesiones / 3.162 frames / 4,5 MiB + 1 adjunto.
+**Estado 24-oct: tareas 9.2 y 9.3 hechas (rc.17).** Compactación por *checkpoint*: un
+manifiesto que lleva todos los descriptores de chunk acumulados (con sus hashes) y arranca una
+cadena nueva. Motor de política determinista (`lib/policy.js`) con límites duros —cantidad de
+chunks del checkpoint y espacio libre— y motivo explícito en cada decisión. `keeper gc` borra
+sólo objetos no referenciados, en seco por defecto y con `--yes` obligatorio.
+
+Medición sobre la bóveda real: **570 manifiestos → 1**; lectura de cadena **2.242 ms → 34 ms**;
+`verify` ok con 5 sesiones, 3.292 frames, 4,6 MiB y 1 adjunto. `gc` en seco detecta 570 objetos
+no referenciados (590 KiB), que son los manifiestos viejos: se borran sólo con decisión
+explícita, porque son el único registro de qué snapshot agregó qué.
