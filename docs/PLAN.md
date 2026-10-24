@@ -258,3 +258,63 @@ verificación pasaría los 45 s sólo en lectura.
 3. Mientras tanto: caché de cadena en memoria por `head` + `mtime`, que evita releer 494
    archivos en cada comando del plugin.
 4. Objetivo verificable: `verify` bajo 5 s con 10.000 frames.
+### 9.8 Retracción segura (uninstall) — pedido 24-oct
+
+Objetivo: poder quitar el plugin **sin dejar rastros de su actividad**, sin destruir el
+historial del usuario y sin tocar nada ajeno. No es prioritario, pero el diseño se fija ahora
+porque un uninstall mal hecho es más peligroso que no tenerlo.
+
+#### Inventario real de huellas (verificado en la máquina, 24-oct)
+
+| # | Huella | Dónde | ¿Dato del usuario? |
+|---|---|---|---|
+| 1 | fila del plugin en el patch del perfil | `profiles/<p>/cordis.patch.yml` (`- id: history-keeper`) | no |
+| 2 | dependencia | `profiles/<p>/package.json` → `dependencies` | no |
+| 3 | entrada en la lista de bundles | `profiles/<p>/package.json` → `dsh.profile.bundles` | no |
+| 4 | entrada del lock | `profiles/<p>/pnpm-lock.yaml` | no |
+| 5 | exclusiones que pnpm agregó por nosotros | `profiles/<p>/pnpm-workspace.yaml` (`minimumReleaseAgeExclude`) | no |
+| 6 | copia instalada | `profiles/<p>/node_modules/<pkg>` | no |
+| 7 | archivo de clave generado por `init` | `~/.dsh/history-keeper.key` (si se usó el default) | **sí: sin ella la bóveda es ilegible** |
+| 8 | bóveda | `config.store` (default `~/.dsh/history-keeper`) | **sí: el respaldo** |
+| 9 | copias de respaldo hechas por el tooling | `cordis.patch.yml.bak-*` en el perfil | no |
+| 10 | temporales de escritura atómica | `<archivo>.tmp-<pid>-<rand>` | no (ninguno hoy) |
+| 11 | sesiones restauradas | `<home>/sessions/...` | **sí: son del usuario** |
+
+Nada más: no hay servicios, tareas programadas, variables de entorno persistentes, claves de
+registro ni entradas de PATH. El plugin **no escribe** fuera de la bóveda, el archivo de clave
+y las sesiones que el usuario manda a restaurar.
+
+#### Semántica propuesta
+
+- **Por defecto**: quitás el programa, **conservás los datos**. Elimina 1–6, 9 y 10; informa
+  exactamente qué quedó (7 y 8) y con qué comando borrarlo.
+- **`--purge-data`**: elimina además la bóveda y el archivo de clave. Exige `--yes` y muestra
+  antes el id de bóveda, la cantidad de sesiones y la huella de la frase, para que se sepa qué
+  se destruye.
+- **Guarda dura**: si la bóveda contiene sesiones que esta máquina **no** tiene, `--purge-data`
+  se niega salvo `--force`, porque esas serían las únicas copias.
+- **`keeper uninstall --dry-run`**: imprime el manifiesto completo (ruta, motivo, tamaño) y lo
+  que va a conservar. Es el modo por defecto sugerido para el primer intento.
+- **`keeper uninstall --verify`**: relee el perfil y comprueba que no queda ninguna referencia
+  a `keeper`; sale con código 1 si encuentra alguna.
+
+#### Reglas de implementación
+
+1. **Nunca globs.** El script anterior de la v1 usaba `dsh-*` y habría borrado directorios del
+   propio DSH (`dsh-subprocess-*`, `dsh-workspace-changes-*`). Rutas explícitas y verificadas.
+2. **Edición de YAML por línea e id-aware**, con copia previa; si el YAML no parsea, **no se
+   reescribe nada** y se informa.
+3. **Idempotente**: correrlo dos veces es seguro; reporta "ya ausente".
+4. **No toca**: `~/.dsh/sessions`, `~/.dsh/attachments`, credenciales, filas de otros plugins,
+   el runtime de DSH, el clon del repositorio.
+5. Los **logs del host** quedan fuera de alcance: DSH puede haber registrado avisos `[keeper]`
+   en sus propios archivos de log, y reescribirlos no es tarea de un plugin.
+
+#### Pruebas
+
+- Perfil de prueba con la fila nuestra y la de otro plugin: se va la nuestra, queda la ajena.
+- Correr dos veces.
+- Patch corrupto: se niega y no modifica nada.
+- `--purge-data` sin `--yes`: se niega.
+- `--purge-data` con sesiones ausentes en local: se niega salvo `--force`.
+- `--verify` detecta una referencia residual inyectada a propósito.
