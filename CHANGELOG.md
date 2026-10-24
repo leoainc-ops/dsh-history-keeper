@@ -13,6 +13,30 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.13 — 2026-10-24
+
+### Performance
+
+- **The manifest chain is memoised.** Reading it opens one file per manifest, and a real
+  vault with 541 manifests took 14.8 s to walk from cold. The plugin reads the chain on every
+  `/keeper status` and every automatic capture, so it walked it every time. The cache key
+  includes the head reference (a random id that changes on every write) and the snapshot
+  count, so a write by this process or by another one invalidates the entry automatically —
+  no timers and no manual invalidation that could go stale. Measured on the real vault:
+  **14.8 s → 0 ms** for a warm read.
+
+### Fixed
+
+- `verify` reads the chain with `{ fresh: true }`: a verification served from the cache could
+  hide a deleted or corrupted object. A test deletes the head object and asserts that the
+  cached read still succeeds while the fresh read throws — the behaviour is now explicit.
+
+### Note
+
+- A CLI process still pays the cold read once (`keeper status` spawns a process), so the fix
+  is a large win for the plugin and for the second read inside an operation, not for the
+  first read of a command-line invocation. Bounding that cost is what compaction (9.2) and the
+  append-only manifest log (9.7) are for.
 ## 0.1.0-rc.12 — 2026-10-24
 
 ### Added

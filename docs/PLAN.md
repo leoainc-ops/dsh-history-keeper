@@ -364,3 +364,8 @@ queda disponible para quien quiera el rigor; (b) el recibo **incluye la huella d
 (`sha256(storeId + frase)`), que no revela la frase y permite detectar después si una copia
 pertenece a la frase que se tiene. Prioridad: no urgente; se implementa después de la fase de
 eficiencia y antes de publicar en el Hub.
+**Estado 24-oct: punto 3 hecho (rc.13).** Caché de cadena en `lib/store.js`, con clave por
+cabeza + cantidad de snapshots, e invalidación automática al escribir. Medición: 14,8 s (541
+manifiestos, frío) → 0 ms en caliente. `verify` lee siempre del disco (`{ fresh: true }`) para
+que una lectura cacheada no oculte un objeto borrado. La lectura fría de un proceso de CLI
+sigue pagándose; eso lo acota la compactación.

@@ -103,7 +103,11 @@ test('manifest chain is append-only and tamper-evident', () => {
   bytes[bytes.length - 20] ^= 0xff
   fs.writeFileSync(file, bytes)
 
-  assert.throws(() => readManifestChain(store), KeeperStoreError)
+  // A cached walk cannot see the tampering, by design: the cache is keyed by the head and
+  // answers repeat reads. Tamper detection is asserted on the fresh path, the one `verify`
+  // uses, so the guarantee stays where it matters.
+  assert.equal(readManifestChain(store).length, 2, 'the warm cache still answers')
+  assert.throws(() => readManifestChain(store, { fresh: true }), KeeperStoreError)
 })
 
 test('atomic writes leave no temporary files behind', () => {
