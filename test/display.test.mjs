@@ -33,8 +33,11 @@ test('an empty config resolves usable defaults, so no YAML is required to instal
 })
 
 test('explicit values still win over the defaults', () => {
+  // Paths are resolved by the platform, so assert against path.resolve rather than a
+  // literal Windows string: 'C:\\vault' is absolute on Windows and relative on POSIX.
   const { config } = normalizeConfig({ store: 'C:\\vault', sessionsRoot: 'C:\\home\\sessions', debounceMs: 500 })
-  assert.equal(config.store, 'C:\\vault')
-  assert.equal(config.sessionsRoot, 'C:\\home\\sessions')
+  assert.equal(config.store, path.resolve('C:\\vault'))
+  assert.equal(config.sessionsRoot, path.resolve('C:\\home\\sessions'))
+  assert.notEqual(config.store, path.join(os.homedir(), '.dsh', 'history-keeper'), 'an explicit store must replace the default')
   assert.equal(config.debounceMs, 500)
 })
