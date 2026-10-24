@@ -358,3 +358,9 @@ semántica anterior.
   informa su ruta para que lo elimine él.
 - Para poder borrar la clave con seguridad, `initStore` registra en `meta.json` qué archivo de
   clave generó (`generatedKeyFile`). Borrar sólo lo que consta como propio.
+**Decisiones aprobadas por el autor (24-oct):** (a) un destino en la misma unidad, incluidas
+carpetas de nube en `C:`, sólo **advierte** y queda registrado en el recibo; `--require-external`
+queda disponible para quien quiera el rigor; (b) el recibo **incluye la huella de la frase**
+(`sha256(storeId + frase)`), que no revela la frase y permite detectar después si una copia
+pertenece a la frase que se tiene. Prioridad: no urgente; se implementa después de la fase de
+eficiencia y antes de publicar en el Hub.
