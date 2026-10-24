@@ -233,3 +233,28 @@ Verificado: el motor no escanea secretos. La decisión de diseño:
 2. 9.5 (filtro de secretos): protege la promesa antes de compartir un store.
 3. 9.2 + 9.3 (compactación y política), que dependen de medir el uso real.
 4. 9.4 (nanored) sólo si la medición muestra que puede ganarle a la heurística.
+### 9.7 Escalabilidad de la cadena de manifiestos — hallazgo 24-oct
+
+Medición sobre la bóveda real (494 manifiestos, 3,9 MiB publicados):
+
+| Etapa | Tiempo |
+|---|---|
+| apertura (KDF scrypt) | 1,4 s por proceso |
+| leer la cadena (494 archivos) | 4,1–5,4 s |
+| `verify` completo | 17,7 s |
+| `verify` por CLI de punta a punta | 48,5 s |
+
+**La causa no son los bytes, son los archivos**: cada manifiesto se lee como un archivo
+propio, ~8–11 ms cada uno. El costo de `verify` y de cualquier lectura crece **linealmente con
+la cantidad de manifiestos**, no con el volumen de datos. Con 5.000 manifiestos una
+verificación pasaría los 45 s sólo en lectura.
+
+**Consecuencias para la agenda**
+
+1. La compactación (9.2) deja de ser cosmética: es lo que mantiene acotada la latencia.
+2. Alternativa estructural para v0.2: guardar los manifiestos en **un archivo append-only**
+   por bóveda (mismo patrón que el log de sesión: frames con hash) en lugar de un archivo por
+   manifiesto. Append O(1) y lectura secuencial, con migración desde el formato actual.
+3. Mientras tanto: caché de cadena en memoria por `head` + `mtime`, que evita releer 494
+   archivos en cada comando del plugin.
+4. Objetivo verificable: `verify` bajo 5 s con 10.000 frames.
