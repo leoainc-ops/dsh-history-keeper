@@ -50,21 +50,43 @@ El YAML de abajo sobrescribe los valores por defecto:
     - id: history-keeper
       name: dsh-history-keeper
       config:
-        store: C:\Users\vos\keeper-vault        # obligatorio
-        sessionsRoot: C:\Users\vos\.dsh\sessions # opcional; por defecto ~/.dsh/sessions
-        autoSnapshotOnFlush: true               # capturar al cerrar cada turno
-        debounceMs: 2000
+        store: C:\Users\vos\keeper-vault         # por defecto: ~/.dsh/history-keeper
+        sessionsRoot: C:\Users\vos\.dsh\sessions # por defecto: ~/.dsh/sessions
+        autoSnapshotOnFlush: true                # capturar al cerrar cada turno
+        debounceMs: 2000                         # espera antes de ejecutar la captura
+        snapshotMinIntervalMs: 30000             # agrupa una ráfaga de turnos (0 lo desactiva)
+        maxChunkBytes: 1048576                   # tamaño objetivo; los frames nunca se parten
+        secretScan: true                         # cuarentena si parece haber una credencial
+        secretScanAllow: []                      # ids de reglas a ignorar, p. ej. [openai-key]
+        secretScanEntropy: false                 # cadenas largas de alta entropía (ruidoso)
+        keyFile: C:\Users\vos\.dsh\history-keeper.key
+        passphraseFile: null                     # gana sobre el archivo de clave y sobre la variable
+        passphraseEnv: KEEPER_PASSPHRASE
+        deviceName: mi-notebook
 ```
 
-La frase de paso nunca va en el patch: exportá `KEEPER_PASSPHRASE` (o usá
-`passphraseFile`). Después, en una conversación:
+La frase de paso nunca va en el patch: sale de `passphraseFile`, del archivo de clave que crea
+`init`, o de `KEEPER_PASSPHRASE`. Después, en una conversación:
 
 ```text
+/keeper init       crear la bóveda (genera una frase si no hay ninguna configurada)
 /keeper status     qué tiene la bóveda, qué falta publicar, qué le falta a esta máquina
 /keeper snapshot   capturar ahora los bytes nuevos
 /keeper verify     revisar cada objeto, hash y cadena
 /keeper help
 ```
+
+### Filtro de secretos
+
+Una captura nunca publica una sesión cuyos bytes nuevos parezcan contener una credencial. El
+filtro **pone en cuarentena**, no redacta: reescribir rompería la promesa de exactitud byte a
+byte. De esa sesión no se escribe nada, y `/keeper snapshot` informa la regla y la línea,
+nunca el valor. Se puede publicar igual con `--force`, o silenciar una regla con
+`--allow-rule <id>`.
+
+Detecta secretos estructurados (claves de API, tokens, asignaciones de clave, bloques de clave
+privada). Una contraseña escrita en prosa **no** es detectable por patrón: el filtro es una red
+de seguridad, no una garantía.
 
 `restore` **no** está disponible dentro de DSH a propósito: escribe el store de sesiones
 vivo y un host en ejecución no lo notaría. Sigue siendo una operación de la CLI, con DSH

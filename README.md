@@ -42,23 +42,37 @@ never overwrites an existing log.
 
 ## Use it inside DSH
 
-Install the bundle, then point the row at your vault in the profile patch:
+Install the bundle, then run `/keeper init` once in any conversation. That is the whole
+setup: it creates the vault (default `~/.dsh/history-keeper`), generates a passphrase when
+you have not chosen one, and writes it to `~/.dsh/history-keeper.key`.
+
+No profile patch is required. The YAML below exists only to override the defaults:
 
 ```yaml
 - insert:
     - id: history-keeper
       name: dsh-history-keeper
       config:
-        store: C:\Users\you\keeper-vault        # required
-        sessionsRoot: C:\Users\you\.dsh\sessions # optional; defaults to ~/.dsh/sessions
-        autoSnapshotOnFlush: true               # capture after each closed turn
-        debounceMs: 2000
+        store: C:\Users\you\keeper-vault         # default: ~/.dsh/history-keeper
+        sessionsRoot: C:\Users\you\.dsh\sessions # default: ~/.dsh/sessions
+        autoSnapshotOnFlush: true                # capture after each closed turn
+        debounceMs: 2000                         # settle time before a capture runs
+        snapshotMinIntervalMs: 30000             # coalesce a burst of turns (0 disables)
+        maxChunkBytes: 1048576                   # target chunk size; frames are never split
+        secretScan: true                         # quarantine a session that looks like it holds a credential
+        secretScanAllow: []                      # rule ids to ignore, e.g. [openai-key]
+        secretScanEntropy: false                 # long high-entropy runs (noisy; off by default)
+        keyFile: C:\Users\you\.dsh\history-keeper.key
+        passphraseFile: null                     # wins over the key file and the env var
+        passphraseEnv: KEEPER_PASSPHRASE
+        deviceName: my-laptop
 ```
 
-The passphrase is never written into the patch: export `KEEPER_PASSPHRASE` (or set
-`passphraseFile`). Then, in a conversation:
+The passphrase is never written into the patch: it comes from `passphraseFile`, the key file
+that `init` creates, or `KEEPER_PASSPHRASE`. Then, in a conversation:
 
 ```text
+/keeper init       create the vault (generates a passphrase when none is configured)
 /keeper status     what the vault holds, what is pending, what this machine is missing
 /keeper snapshot   capture new session bytes now
 /keeper verify     check every object, hash and chain
@@ -69,6 +83,18 @@ The passphrase is never written into the patch: export `KEEPER_PASSPHRASE` (or s
 store, and a running host would not notice. It stays a CLI operation, with DSH closed —
 that is the whole point of a recovery tool.
 
+### The secret gate
+
+A capture never publishes a session whose new bytes look like a credential. The gate
+**quarantines** instead of redacting, because rewriting bytes would break the byte-for-byte
+promise: nothing is written for that session, and `/keeper snapshot` reports the rule and the
+line — never the value. Publish anyway with `--force`, or silence one rule with
+`--allow-rule <id>`.
+
+It catches structured secrets (API keys, tokens, key assignments, private key blocks). A
+password written in prose is **not** detectable by pattern: the gate is a safety net, not a
+guarantee.
+
 ### Minimal setup
 
 Every key is optional. With no `config` at all, the plugin looks for a store at
@@ -77,6 +103,7 @@ create the store when it is missing.
 
 Timestamps are stored in UTC (an instant must be unambiguous across machines) and
 rendered in your local time zone next to the offset.
+
 ## Design principles
 
 1. **No external binaries.** `node:` only — no `git`, no `age`, nothing to install.

@@ -13,6 +13,33 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.12 — 2026-10-24
+
+### Added
+
+- **Coalescing.** `snapshotMinIntervalMs` (default 30 s) keeps a session's new bytes pending
+  until its window opens, so a burst of turns no longer produces one manifest per turn. The
+  plugin reschedules itself for the exact moment the window opens; `/keeper snapshot` and a
+  session closing always publish immediately (`force`). CLI: `--min-interval <ms>`.
+- **Secret gate.** Before sealing, `snapshot` decompresses the bytes it is about to publish and
+  scans them for credentials (`lib/secrets.js`). A match **quarantines the whole session**:
+  nothing is written, the report names the rule and the line, and the value is never printed.
+  Override with `--force`, silence one rule with `--allow-rule <id>`, or turn it off with
+  `secretScan: false` / `--no-secret-scan`. An optional `--entropy` rule catches long
+  high-entropy runs and is off by default because tool output trips it.
+- **Derived-key cache.** Opening a store derived the scrypt key every time (1.4–3.1 s), which
+  the automatic capture would have paid on every run. Keys are now memoised per store in
+  process memory only; the first open pays the KDF, later ones take milliseconds.
+
+### Changed
+
+- `/keeper status` reports the coalescing window, whether the secret gate is on (and which
+  rules are allowed), and the sessions quarantined in the last run.
+
+### Note
+
+- The gate catches structured secrets. A password written in prose is not detectable by
+  pattern, so this is a safety net, not a guarantee.
 ## 0.1.0-rc.11 — 2026-10-24
 
 ### Fixed

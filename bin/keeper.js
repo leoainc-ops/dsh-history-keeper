@@ -43,6 +43,10 @@ init options
 snapshot options
   --session <id>           limit to one session (repeatable)
   --max-chunk-bytes <n>    target chunk size (default 1048576)
+  --min-interval <ms>      coalesce flushes per session (default 0: publish everything now)
+  --no-secret-scan         publish even if a credential is detected (quarantine is the default)
+  --allow-rule <id>        disable one secret rule (repeatable)
+  --force                  publish even inside the window, or past a quarantine
 
 restore options
   --dry-run                show the plan, write nothing
@@ -58,13 +62,14 @@ function parse(argv) {
       continue
     }
     const key = token.slice(2)
-    if (key === 'json' || key === 'dry-run' || key === 'force') {
+    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'entropy') {
       options[key] = true
       continue
     }
     const value = argv[++i]
     if (value === undefined) fail('missing value for --' + key)
     if (key === 'session') options.session.push(value)
+    else if (key === 'allow-rule') options['allow-rule'] = [...(options['allow-rule'] ?? []), value]
     else options[key] = value
   }
   return options
@@ -172,6 +177,11 @@ function main() {
       home,
       maxChunkBytes: options['max-chunk-bytes'] ? Number(options['max-chunk-bytes']) : undefined,
       sessionIds: options.session.length > 0 ? options.session : null,
+      minIntervalMs: options['min-interval'] ? Number(options['min-interval']) : 0,
+      force: options.force === true,
+      secretScan: options['no-secret-scan'] !== true,
+      secretScanAllow: options['allow-rule'] ?? [],
+      secretScanEntropy: options.entropy === true,
     })
     const lines = []
     lines.push('snapshot ' + formatTime(result.createdAt))
@@ -181,6 +191,10 @@ function main() {
     }
     for (const item of result.skipped) lines.push('  = ' + item.sessionId + '  ' + item.code.toLowerCase().replaceAll('_', ' '))
     for (const item of result.problems) lines.push('  ! ' + (item.sessionId ?? item.file) + '  ' + item.code + ': ' + item.message)
+    if (result.quarantined > 0) {
+      lines.push('  quarantined ' + result.quarantined + ' session(s): nothing was published for them')
+      lines.push('  publish anyway with --force, or disable one rule with --allow-rule <id>')
+    }
     if (result.manifestSeq !== null) lines.push('  manifest: ' + result.manifestSeq)
     print(result, options, lines.join('\n'))
     if (result.problems.length > 0) process.exit(1)

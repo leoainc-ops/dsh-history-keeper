@@ -1,4 +1,4 @@
-﻿# CLI reference — `keeper`
+# CLI reference — `keeper`
 
 `keeper` works with **no DSH running and nothing but Node installed**. That is deliberate:
 the scenario this tool exists for is the one where the host is gone, so the recovery path
@@ -33,8 +33,12 @@ from the environment variable named by `--passphrase-env`.
 | `--device-name <name>` | `init` | hostname | Label stored in `meta.json`; it identifies the machine that produced the snapshots. |
 | `--session <id>` | `snapshot` | all sessions | Limit the capture to one session. Repeatable. |
 | `--max-chunk-bytes <n>` | `snapshot` | `1048576` | Target chunk size. Frames are never split, so a single large frame wins over this target. |
+| `--min-interval <ms>` | `snapshot` | `0` | Coalesce a burst of flushes for the same session: new bytes wait until the window opens. `0` publishes everything immediately. |
+| `--no-secret-scan` | `snapshot` | off | Publish even when a credential rule matches. The gate is on by default. |
+| `--allow-rule <id>` | `snapshot` | — | Disable one secret rule (repeatable), e.g. `--allow-rule secret-assignment`. |
+| `--entropy` | `snapshot` | off | Also flag long high-entropy runs. Noisy on tool output; off by default. |
 | `--dry-run` | `restore` | off | Print the plan and write nothing. |
-| `--force` | `restore` | off | When a different log already exists at the target, keep it and write the incoming copy alongside as `.incoming-<timestamp>`. It never overwrites. |
+| `--force` | `snapshot`, `restore` | off | `snapshot`: publish inside the coalescing window, or past a quarantine. `restore`: when a different log already exists at the target, keep it and write the incoming copy alongside as `.incoming-<timestamp>`. It never overwrites. |
 | `--json` | all | off | Machine-readable output. Timestamps stay as raw ISO-8601 UTC in JSON; the human output renders them in local time. |
 
 ## Environment
@@ -73,6 +77,24 @@ keeper restore --store ~/keeper-vault --home ~/.dsh --dry-run
 keeper restore --store ~/keeper-vault --home ~/.dsh
 ```
 
+## The secret gate
+
+Before a chunk is sealed, `snapshot` decompresses the bytes it is about to publish and scans
+them. A match **quarantines the whole session** — nothing of it is written — and the report
+names the rule and the line, never the value:
+
+```text
+! session-abc  QUARANTINED: looks like it contains a secret (openai-key at line 2);
+  nothing was published. Re-run with --force to publish anyway, or allow the rule.
+```
+
+Why quarantine and not redaction: redaction would change the bytes, and the whole promise is
+that a restored session is byte-identical to the one the host wrote. The session stays local
+and unpublished until the operator decides.
+
+Rules: `openai-key`, `github-token`, `github-pat`, `aws-key`, `private-key`, `bearer`,
+`secret-assignment`, `npm-token`, plus `high-entropy` only with `--entropy`. A password
+written in prose is not detectable by pattern; the gate is a safety net, not a guarantee.
 ## What each command refuses to do
 
 - `snapshot` will not capture a torn tail (it stops at the last complete frame) and will not
