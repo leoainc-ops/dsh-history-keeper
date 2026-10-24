@@ -318,3 +318,43 @@ y las sesiones que el usuario manda a restaurar.
 - `--purge-data` sin `--yes`: se niega.
 - `--purge-data` con sesiones ausentes en local: se niega salvo `--force`.
 - `--verify` detecta una referencia residual inyectada a propósito.
+#### Revisión 24-oct: el respaldo es obligatorio, no opcional
+
+Criterio del autor: la retracción tiene que borrar **todo registro de la bóveda del disco de
+este equipo**, y para eso la bóveda debe estar antes en un respaldo externo. El borrado pasa a
+ser el **último** paso, después de una verificación, no el primero. Esto reemplaza la
+semántica anterior.
+
+**Secuencia obligatoria**
+
+1. `keeper uninstall --to <destino>` — el destino es obligatorio; sin él no hay retracción.
+2. **Copia**: se copia la bóveda completa (objetos + manifiestos + `meta.json`) y el archivo de
+   clave, a `<destino>/<storeId>/`.
+3. **Verificación de la copia, en dos niveles**:
+   - *archivo por archivo*: sha256 y tamaño de cada archivo contra el original; misma cantidad
+     de archivos y mismos bytes totales;
+   - *contenido*: `verify` **sobre la copia**, con la frase, para probar que no es sólo un
+     montón de bytes idénticos sino una bóveda válida y descifrable.
+4. **Recibo** `keeper-backup.json` en el destino: `storeId`, cabeza de la cadena, cantidad de
+   sesiones/chunks/bytes, sha256 de cada archivo, fecha y huella de la frase. **Sin ids de
+   sesión ni rutas de proyecto**, para no filtrar metadatos.
+5. Sólo si 3 pasa: se borra la bóveda local, el archivo de clave **que creó `init`**, y las
+   huellas 1–6, 9 y 10 del inventario.
+6. Si la verificación falla: **no se borra nada**; se informa qué archivo no coincide y el
+   comando termina en error.
+7. Reanudable: si se interrumpe después de copiar pero antes de borrar, volver a ejecutarlo
+   detecta el respaldo verificado por el recibo y continúa sin recopiar.
+
+**Salvedades que el diseño debe responder**
+
+- *Misma unidad que la bóveda* (incluye carpetas de nube sincronizadas en `C:`): se **advierte**
+  y se registra el destino en el recibo; si el autor quiere rigor, `--require-external` rechaza
+  destinos en la misma unidad.
+- *Escotilla de escape*: `--discard` existe pero **sólo** cuando la bóveda no contiene ninguna
+  sesión ausente del equipo (nada único que perder), y exige `--yes`. Con sesiones ausentes,
+  la bóveda es la única copia y el respaldo es innegociable.
+- *Frases ajenas a la bóveda*: el archivo de clave que creó `init` se borra; un
+  `passphraseFile` que eligió el usuario **no se toca** (no lo creamos nosotros), sólo se
+  informa su ruta para que lo elimine él.
+- Para poder borrar la clave con seguridad, `initStore` registra en `meta.json` qué archivo de
+  clave generó (`generatedKeyFile`). Borrar sólo lo que consta como propio.
