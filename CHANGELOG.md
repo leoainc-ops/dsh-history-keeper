@@ -13,6 +13,21 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.15 — 2026-10-24
+
+### Fixed
+
+- **A false positive quarantined a real conversation.** The `secret-assignment` rule matched
+  `PASSPHRASE = 'chain-cache-test-passphrase'` in a test constant, so the session that *wrote*
+  that test could no longer be backed up. Rules that extract a value now ignore placeholders
+  (`test`, `example`, `dummy`, `fake`, `sample`, `placeholder`, `redacted`, `changeme`, `xxxx`).
+  A real-looking assignment (`apiKey = 'a8f5f167…'`, `password: 'Sup3rS3cret-…'`) is still
+  blocked, and a token-shaped value with a benign word (`sk-TEST-…`) is allowed.
+
+### Note
+
+- The suppression is on the matched value, not on the line: a genuine secret written on a line
+  that also contains the word "test" is still caught.
 ## 0.1.0-rc.14 — 2026-10-24
 
 ### Added

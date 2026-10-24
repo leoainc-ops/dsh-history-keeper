@@ -76,3 +76,15 @@ test('the gate can be turned off for a single run', (t) => {
   const result = snapshot(store, { home, now: '2026-10-24T10:00:00.000Z', secretScan: false })
   assert.equal(result.sessions.length, 1)
 })
+
+test('placeholder values do not quarantine a session', () => {
+  // A real false positive: an agent writing a test constant quarantined a whole conversation.
+  assert.deepEqual(scanText("const PASSPHRASE = 'chain-cache-test-passphrase'"), [])
+  assert.deepEqual(scanText("const TOKEN = 'FAKE_TOKEN_abcdefghijklmnop'"), [])
+  assert.deepEqual(scanText('token sk-TEST-abcdefghijklmnopqrst'), [])
+})
+
+test('real-looking assignments are still blocked', () => {
+  assert.equal(scanText("const apiKey = 'a8f5f167f44f4964e6c998dee827110c'")[0].rule, 'secret-assignment')
+  assert.equal(scanText("password: 'Sup3rS3cret-Passw0rd-2026'")[0].rule, 'secret-assignment')
+})
