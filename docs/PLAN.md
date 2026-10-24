@@ -162,3 +162,74 @@ Electron/BoringSSL no expone chacha20-poly1305, corregido a AES-256-GCM (ver §8
 rc.7: las marcas de tiempo se guardan en UTC y se muestran en la zona local con el desfase, y
 todos los valores de configuración tienen default (`~/.dsh/history-keeper`, `~/.dsh/sessions`),
 así que instalar ya no exige editar el patch del perfil.
+---
+
+## 9. Agenda ampliada (24-oct-2026)
+
+### 9.1 Control de frecuencia de snapshots — antes de la fase C
+
+Hoy el único límite es un debounce de 2 s por flush, así que cada lote de turno produce un
+manifiesto: 269 snapshots para 5 sesiones en dos días. Se agrega:
+
+- `snapshotMinIntervalMs` **por sesión** (default 30 s), encima del debounce: agrupa los flush
+  seguidos de una misma sesión;
+- métrica de salida: snapshots por sesión por día (objetivo: menos de 10 sin perder fidelidad);
+- prueba: dos flush dentro de la ventana producen **un** manifiesto y el restore sigue siendo
+  byte a byte.
+
+Va antes de la fase C porque el sync multiplica manifiestos por dispositivo.
+
+### 9.2 Compactación con contexto — fase E
+
+- Manifiesto resumen (*checkpoint*) que cubre N snapshots; los manifiestos originales quedan
+  como historial y pueden podarse según retención.
+- Invariante: el checkpoint incluye los hashes de lo que resume, así que la cadena sigue
+  siendo verificable de punta a punta.
+- **La decisión no es un número fijo**: la toma el motor de política de 9.3.
+
+### 9.3 Motor de política — determinista y auditable
+
+- **Entradas**: sesiones, bytes/día, frecuencia de flush, espacio libre en el destino, clase de
+  equipo (CPU/RAM), tiempo desde la última compactación, cantidad de objetos.
+- **Salidas**: intervalo de coalescing, umbral de compactación, política de retención.
+- **Reglas**: límites duros; cada decisión se registra con su motivo
+  (`policy: compact (objects>N, freeDisk>X)`); **ninguna política puede debilitar las
+  garantías**: nunca borra la única copia de nada, nunca sacrifica la verificación.
+
+### 9.4 Modelo local ("nanored") — experimental y opcional
+
+- **Idea**: un modelo chico local (1–3 B cuantizado, llama.cpp u ONNX) que **propone**
+  parámetros a partir del contexto de 9.3.
+- **Rol**: proponente, no autoridad. El motor determinista valida y acota; si el modelo no está,
+  todo funciona con las reglas de 9.3. Cero tokens de nube, pero sí pesos (~1–2 GB).
+- **Encaje**: choca con el principio "cero binarios externos", así que va como **paquete
+  opcional** (`dsh-history-keeper-brain`), nunca en el núcleo.
+- **Criterio de aceptación**: tiene que **ganar** a la heurística en una medición reproducible
+  (mismos objetos con menos bytes, o menos tiempo de restore, sin perder verificabilidad). Si no
+  gana, no entra.
+- **Riesgos**: no determinismo y deriva. Mitigación: propuestas registradas con su motivo,
+  validación por límites duros y desactivación total.
+
+### 9.5 Filtro de secretos — Must del diseño, todavía ausente
+
+Verificado: el motor no escanea secretos. La decisión de diseño:
+
+- **no redactar** (rompería la exactitud byte a byte); en cambio **cuarentena**: la sesión que
+  dispara una regla no se publica, se informa la ruta y el offset, y se publica sólo con
+  `--force` explícito;
+- reglas: patrones de tokens/claves/contraseñas más una prueba de entropía; falsos positivos
+  configurables; **el aviso nunca imprime el valor**.
+
+### 9.6 Deuda operativa menor
+
+- Documentar la política `minimumReleaseAge` de pnpm (instalar el mismo día de un release exige
+  una exclusión o un override puntual).
+- Matriz de CI `ubuntu` + `windows`.
+- `SECURITY.md` y `CONTRIBUTING.md` cuando se abra la colaboración.
+
+### Orden propuesto dentro de la fase E
+
+1. 9.1 (coalescing) junto con C.0, antes del sync.
+2. 9.5 (filtro de secretos): protege la promesa antes de compartir un store.
+3. 9.2 + 9.3 (compactación y política), que dependen de medir el uso real.
+4. 9.4 (nanored) sólo si la medición muestra que puede ganarle a la heurística.
