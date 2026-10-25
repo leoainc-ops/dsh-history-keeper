@@ -118,6 +118,19 @@ The plugin compacts on its own only when the policy approves, and the policy exp
 manifests since the last checkpoint, chunks the checkpoint would carry, store size and free
 space, each with a hard bound. Set `autoCompact: false` to keep compaction a command you run.
 
+### Why `gc` is opt-in
+
+Keeping the superseded manifests costs **disk only**: the chain stops at the checkpoint, so
+they are never opened on the normal path and add no latency. What they hold is the record of
+which capture added which chunk — the only independent account of how the history was built —
+and, if the checkpoint object is ever damaged, the raw material from which a careful recovery
+could start (it needs the previous head reference, which the checkpoint carries in `covers`,
+so a damaged checkpoint makes that recovery manual).
+
+The trade is therefore 590 KiB against provenance, and a tool that removes it should be a
+deliberate decision, never a side effect. `gc` prints what it would delete and refuses to act
+without `--yes`.
+
 ## Backfilling attachments
 
 Incremental capture only inspects the bytes it is about to publish. A session published
