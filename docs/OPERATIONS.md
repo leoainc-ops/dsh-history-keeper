@@ -14,17 +14,33 @@ recommended replacements are
 
 ### The state on 2026-10-28
 
-The token in `~/.npmrc` (id `c7e95d`, name `dsh-history-keeper 29102026`, expires
-2027-01-26) has `bypass_2fa = false`. Authentication and reads work (`npm whoami`, `npm view`
-are fine), but `npm publish` answers:
+The first replacement token (id `c7e95d`) was created **without** the 2FA bypass, so it could
+read but not publish:
 
 ```text
 http fetch PUT 401 … EOTP: OTP required for authentication
 Open this URL in your browser to authenticate: https://www.npmjs.com/auth/cli/…
 ```
 
-That is npm asking for an interactive challenge for the write, which is the direction the
-registry is moving. Three ways forward, in order of durability:
+That is npm asking for an interactive challenge for the write — no browser means no publish.
+Validating 2FA in the browser does **not** change the token the CLI uses; only the token in
+`~/.npmrc` matters.
+
+The token now in `~/.npmrc` (id `0eeed3a3`, name `dsh-history-keeper`, created 2026-10-28,
+expires 2027-01-26) has **`bypass_2fa = true`**, and the publish path was verified: publishing
+the current version answers
+
+```text
+PUT 403 … You cannot publish over the previously published versions: 0.1.0-rc.17.
+```
+
+which is the *success* signal — the registry accepted the credentials and refused only the
+duplicate. An `EOTP` here means the bypass is missing; `E401` means the token is absent or
+revoked.
+
+Two deadlines apply to this token: its own expiry (2027-01-26) and npm's removal of direct
+publishing from bypass tokens (around January 2027). Both point at the same migration, so the
+bypass token is a bridge, not a destination:
 
 | Path | Works until | Effort |
 |---|---|---|
