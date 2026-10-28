@@ -148,6 +148,8 @@ node --test "test/*.test.mjs"   # unit tests, no dependencies to install
 npm run guard                   # refuses committed session logs
 ```
 
+Moving your history to another machine today, without sync:
+[`docs/TRANSFER.md`](docs/TRANSFER.md).
 Design notes and roadmap: [`docs/`](docs/). Release history, including versions that were
 never published and why: [CHANGELOG.md](CHANGELOG.md).
 
