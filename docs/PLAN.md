@@ -393,3 +393,39 @@ Medición sobre la bóveda real: **570 manifiestos → 1**; lectura de cadena **
 `verify` ok con 5 sesiones, 3.292 frames, 4,6 MiB y 1 adjunto. `gc` en seco detecta 570 objetos
 no referenciados (590 KiB), que son los manifiestos viejos: se borran sólo con decisión
 explícita, porque son el único registro de qué snapshot agregó qué.
+### 9.9 Borrado selectivo de conversaciones — pedido 28-oct
+
+**Política fijada por el autor:** por defecto se guarda **todo**; el usuario no elige qué
+resguardar (eso protege de decisiones tomadas por cansancio o por error). Lo que sí debe poder
+hacer es **borrar una conversación concreta** de la bóveda, por seguridad y por prestación.
+
+Cómo se implementa sobre un store append-only:
+
+| Mecanismo | Qué hace | Reversible |
+|---|---|---|
+| **Tombstone** (`keeper forget <id>`) | un manifiesto marca la sesión como olvidada; `restore` la saltea, `verify` la ignora y `status` la cuenta aparte. Los bytes siguen ahí | sí, hasta el `gc` |
+| **Borrado efectivo** (`keeper forget <id> --purge`) | tras el tombstone se escribe un checkpoint que excluye la sesión, y `gc` borra los objetos que quedaron sin referencia | no |
+
+- Ambos escriben un **recibo** con la lista de sesiones olvidadas y los hashes de los objetos
+  que se dejaron de referenciar.
+- `keeper forget --list` muestra qué está olvidado.
+- **Límite honesto que el recibo debe decir**: borrar de esta bóveda no borra copias en otros
+  medios (pendrive, respaldo en la nube). Si la conversación no debe existir, hay que borrar
+  esas copias también.
+
+### 9.10 Sesiones que aparecen vacías en otra instancia — observado 28-oct
+
+Primera prueba de traslado manual (pc-a → pendrive → pc-b): `verify` ok en el pendrive, 5
+sesiones y 1 adjunto restaurados, y DSH las muestra. **Algunas aparecen vacías**; el autor las
+considera secundarias por ahora, pero es un defecto a explicar antes de dar el traslado por
+completo.
+
+Hipótesis a descartar, en orden:
+
+1. el `cwd` de la sesión apunta a un proyecto que **no existe** en pc-b (por ejemplo `G:\Mi unidad\…`);
+2. la **caché de proyectos** (`storages/session_projcache`) no conoce las sesiones restauradas y la vista queda vacía hasta que DSH la reconstruya;
+3. la sesión restaurada tiene pocos frames o una cola incompleta (revisar `frames` y el último frame);
+4. **versión de DSH distinta** entre las dos máquinas (formato de sesión).
+
+Datos a recoger por cada sesión vacía: tamaño del archivo restaurado, cantidad de frames según
+`verify`, contenido del primer frame (header) y versión de DSH de pc-b.
