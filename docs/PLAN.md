@@ -429,3 +429,21 @@ Hipótesis a descartar, en orden:
 
 Datos a recoger por cada sesión vacía: tamaño del archivo restaurado, cantidad de frames según
 `verify`, contenido del primer frame (header) y versión de DSH de pc-b.
+**Estado 28-oct: 9.10 cerrado con evidencia.** Las cinco sesiones de la bóveda se inspeccionaron
+por dentro (tipos de evento, sin volcar contenido):
+
+| Sesión | Frames | Líneas | Mensajes de usuario | Diagnóstico |
+|---|---|---|---|---|
+| `9a347509…` | 4 | 11 | **0** | sesión semilla: sólo eventos de sesión/política y `session/end-seed` |
+| `1a936ce4…` | 2 | 4 | **0** | sesión semilla: sesión + tres eventos de política |
+| `e4561671…` | 213 | 337 | 5 | conversación completa |
+| `dd4e2186…` | 3.221 | 5.086 | 91 | conversación completa (ésta) |
+| `03f3ef20…` | 114 | 205 | 7 | completa, pero su `cwd` es `H:\…\acad offline`, que no existe en el destino |
+
+Conclusión: **no es un defecto de restauración**. Dos de las cinco no tienen ningún mensaje —
+DSH las muestra vacías porque están vacías— y una pertenece a un proyecto que no existe en la
+otra máquina. Todo en versión 4, `verify` ok, frames y líneas consistentes.
+
+Mejoras derivadas, para cuando se retome: que `status` marque las sesiones sin mensajes, y un
+`restore --skip-empty` para no trasladar cascarones. La receta probada quedó en
+[`docs/TRANSFER.md`](TRANSFER.md).
