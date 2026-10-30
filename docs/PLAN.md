@@ -455,3 +455,40 @@ que reemplazó siguen alcanzables mientras el puntero legado apunte a la cadena 
 `verify` deduplica por `(sesión, seq)` en lugar de reportar un `SEQ_GAP` falso. El store real se
 adopta sin partir la cadena. Dos dispositivos ya pueden escribir el mismo store sin pisarse la
 cabeza; conciliar los historiales es C.2–C.4.
+## 10. Directiva de conciliación (decidida 29-oct)
+
+**Regla del autor:** *resguardar el historial de una sesión y continuar trabajando en otra.* Una
+sesión es una unidad de trabajo que pertenece a la máquina donde nació; en otra máquina se lee,
+no se continúa.
+
+Consecuencia: **el producto no muestra bifurcaciones**. La conciliación es una unión tipo baraja
+—se suman las cartas, se descartan las repetidas, la versión más larga gana cuando una es
+prefijo de la otra— sin árboles, sin duplicados visibles y sin diálogos de decisión.
+
+### Regla del dueño (reemplaza la política de fork de C.4)
+
+1. **Dueño de una sesión**: el dispositivo cuyo manifiesto la publicó por primera vez. Se
+   calcula de la unión; no se configura.
+2. Si una continuación es **prefijo** de la otra, gana la más larga, en silencio.
+3. Si hay **dos continuaciones distintas** de la misma sesión (no son prefijo una de la otra):
+   - la conversación conserva la línea del **dueño**; sigue siendo una sola en la lista;
+   - la continuación ajena **no se descarta**: queda como **cola archivada** en la bóveda,
+     recuperable con un comando explícito;
+   - `status` informa con una línea ("N conversación(es) continuada(s) fuera de su dueño"),
+     sin interrumpir ni pedir decisiones.
+4. Nada de esto borra bytes: el archivo de la continuación existe hasta que se ejecute un
+   borrado explícito.
+
+### Costo aceptado
+
+Si se continúa por accidente una conversación importada, ese agregado no aparece en la
+conversación visible: queda archivado y reportado. Se cambia visibilidad inmediata por una
+línea de producción limpia.
+
+### Requisitos derivados
+
+- **C.2** debe registrar el **dueño** de cada sesión al unir cadenas (el primer manifiesto que
+  la menciona gana).
+- **C.4** deja de ser una UI de tres salidas y pasa a ser la implementación de esta regla.
+- La documentación de transferencia debe decir que una sesión restaurada es **de lectura**:
+  para seguir trabajando allí, abrir una conversación nueva.

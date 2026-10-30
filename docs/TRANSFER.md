@@ -110,3 +110,13 @@ $node = "$env:LOCALAPPDATA\Programs\DeepSeek Harness\DeepSeek Harness.exe"
   Encrypt the medium (BitLocker To Go) if it can get lost.
 - Deleting a conversation from one vault does not delete it from other copies: each medium or
   cloud copy has to be dealt with separately.
+
+## Continuing a restored conversation
+
+A restored conversation belongs to the machine where it was born. Reading it on the target is
+the point; continuing it there is not: the two machines would then hold two different
+continuations of the same session, and reconciliation keeps only the owner's line (the other
+continuation is archived, not shown).
+
+To keep working on the topic on the other machine, **start a new conversation there**. It travels
+back as its own session, with no conflict and no decision to make.
