@@ -13,6 +13,32 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.18 — 2026-10-28
+
+### Added
+
+- **One chain per device (phase C.1).** A store no longer has a single head in `meta.json`
+  that two machines would overwrite for each other. Each device owns
+  `devices/<deviceId>.json` and only writes its own head; reads walk **every** head and
+  deduplicate by object id. `keeper status` shows how many heads a store holds.
+- **Device identity is local.** `~/.dsh/history-keeper-device.json` (created on first use)
+  holds this machine's id and name, so it never travels inside the shared store.
+- Compaction acts on the device's own chain, and `gc` walks every head — it can no longer
+  delete another device's manifests.
+- A store written before devices existed is **adopted** by its first device instead of
+  starting a second chain: no split, no re-publishing.
+
+### Fixed
+
+- The union can describe one chunk twice — a device's checkpoint and the older manifests it
+  replaced remain reachable while the legacy pointer still points into the old chain.
+  Verification now keeps one descriptor per `(session, seq)`, which is what actually happened,
+  instead of reporting a false `SEQ_GAP`.
+
+### Note
+
+- Two devices can now write the same store without clobbering each other's head, but the
+  histories are still **not reconciled**: merging sessions and resolving forks is C.2–C.4.
 ## 0.1.0-rc.17 — 2026-10-24
 
 ### Added

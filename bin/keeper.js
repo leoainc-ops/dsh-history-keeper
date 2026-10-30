@@ -14,8 +14,9 @@ import path from 'node:path'
 import process from 'node:process'
 
 import { generatePassphraseFile, readPassphraseFile } from '../lib/config.js'
-import { initStore, openStore, readManifestChain } from '../lib/store.js'
+import { initStore, listDeviceHeads, openStore, readAllManifests, readManifestChain } from '../lib/store.js'
 import { collectGarbage, compact } from '../lib/compact.js'
+import { resolveDevice } from '../lib/device.js'
 import { backfillAttachments, publishedAttachments, publishedState, snapshot } from '../lib/snapshot.js'
 import { verifyStore } from '../lib/verify.js'
 import { restore } from '../lib/restore.js'
@@ -136,6 +137,7 @@ function main() {
   const options = parse(process.argv.slice(2))
   const command = options._[0] ?? 'status'
   const home = path.resolve(options.home ?? defaultHome())
+  const device = resolveDevice({ configDir: home, deviceName: options['device-name'] })
 
   if (command === 'init') {
     const store = options.store ?? path.join(os.homedir(), '.dsh', 'history-keeper')
@@ -188,6 +190,7 @@ function main() {
       secretScan: options['no-secret-scan'] !== true,
       secretScanAllow: options['allow-rule'] ?? [],
       secretScanEntropy: options.entropy === true,
+      device,
     })
     const lines = []
     lines.push('snapshot ' + formatTime(result.createdAt))
@@ -224,6 +227,7 @@ function main() {
       home,
       dryRun: Boolean(options['dry-run']),
       attachmentsRoot: options['attachments-root'] ?? null,
+      device,
     })
     const lines = [
       'attachments backfill' + (report.dryRun ? '  (dry run)' : ''),
@@ -244,7 +248,7 @@ function main() {
 
   if (command === 'compact') {
     const store = openFrom(options)
-    const result = compact(store, { dryRun: Boolean(options['dry-run']) })
+    const result = compact(store, { dryRun: Boolean(options['dry-run']), device })
     const lines = [
       'compaction' + (result.dryRun ? '  (dry run)' : ''),
       '  manifests before: ' + result.manifestsBefore + '  after: ' + result.manifestsAfter,
@@ -272,7 +276,7 @@ function main() {
 
   if (command === 'status') {
     const store = openFrom(options)
-    const chain = readManifestChain(store)
+    const chain = readAllManifests(store)
     const published = publishedState(chain)
     const blobs = publishedAttachments(chain)
     const publishSummary = [...published.values()].reduce((acc, entry) => {
@@ -294,7 +298,7 @@ function main() {
     }
     const lines = [
       'store    ' + store.dir,
-      'device   ' + store.meta.deviceName + ' (' + store.meta.deviceId + ')',
+      'device   ' + device.deviceName + ' (' + device.deviceId + ')  heads in store: ' + listDeviceHeads(store.dir).length,
       'snapshots ' + chain.length + (result.lastManifestAt ? '  last ' + formatTime(result.lastManifestAt) : ''),
       'published ' + publishSummary.sessions + ' session(s)  ' + publishSummary.frames + ' frame(s)  ' + humanBytes(publishSummary.bytes),
       'attachments ' + blobs.size + ' blob(s)  ' + humanBytes([...blobs.values()].reduce((sum, entry) => sum + (entry.bytes ?? 0), 0)),

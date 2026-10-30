@@ -447,3 +447,11 @@ otra máquina. Todo en versión 4, `verify` ok, frames y líneas consistentes.
 Mejoras derivadas, para cuando se retome: que `status` marque las sesiones sin mensajes, y un
 `restore --skip-empty` para no trasladar cascarones. La receta probada quedó en
 [`docs/TRANSFER.md`](TRANSFER.md).
+**Estado 28-oct: C.1 hecho (rc.18).** Una cadena por dispositivo (`devices/<deviceId>.json`),
+identidad local en `~/.dsh/history-keeper-device.json`, lectura de la unión con dedupe por id de
+objeto, compactación por dispositivo y `gc` que recorre todas las cabezas. Hallazgo corregido en
+el camino: la unión puede describir dos veces el mismo chunk (un checkpoint y los manifiestos
+que reemplazó siguen alcanzables mientras el puntero legado apunte a la cadena vieja), así que
+`verify` deduplica por `(sesión, seq)` en lugar de reportar un `SEQ_GAP` falso. El store real se
+adopta sin partir la cadena. Dos dispositivos ya pueden escribir el mismo store sin pisarse la
+cabeza; conciliar los historiales es C.2–C.4.
