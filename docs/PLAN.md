@@ -492,3 +492,21 @@ línea de producción limpia.
 - **C.4** deja de ser una UI de tres salidas y pasa a ser la implementación de esta regla.
 - La documentación de transferencia debe decir que una sesión restaurada es **de lectura**:
   para seguir trabajando allí, abrir una conversación nueva.
+**Estado de esta sección (29-oct): PROPUESTA, pendiente de confirmación.** El autor no alcanza a
+visualizar las implicaciones de bifurcar o no el historial, así que la regla del dueño **no está
+aprobada**. Se mantiene escrita como candidata porque describe el diseño que evita el árbol de
+bifurcaciones, pero C.4 no se implementa hasta que la decisión esté tomada con evidencia.
+
+### Prueba para decidir (mañana, con las dos PCs juntas)
+
+En lugar de discutir en abstracto, se puede **ver** el caso en cinco minutos sobre datos reales:
+
+1. En pc-b, restaurar (ya está hecho) y **continuar** una conversación corta importada de pc-a
+   (dos o tres mensajes).
+2. En pc-a, continuar **esa misma** conversación con otros dos o tres mensajes distintos.
+3. Capturar en ambas y unir las dos bóvedas.
+4. Mirar el resultado con los dos criterios: (a) regla del dueño → una sola conversación visible
+   y la cola ajena archivada; (b) regla de bifurcación → dos conversaciones visibles con la
+   misma identidad.
+
+La diferencia se ve en la lista del panel lateral, y recién ahí hay una decisión informada.
