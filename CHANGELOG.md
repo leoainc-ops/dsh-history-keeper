@@ -13,6 +13,27 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.19 — 2026-10-30
+
+### Fixed
+
+- **Two writers could fork the chain and lose chunks.** On 2026-10-30 the plugin (still on
+  rc.17) and the CLI (rc.18) wrote the same store at the same time: each read the head, wrote
+  a manifest and moved the head, so one branch became unreachable and the survivor kept a gap
+  — measured on one session: chunks 707–712 missing, `verify` refusing it.
+  `snapshot`, `compact`, garbage collection and the attachment backfill now take an exclusive
+  **store lock** (`LOCK`, created with the exclusive flag) for the whole read-head → write →
+  move-head sequence. A writer that cannot get in fails with `STORE_BUSY` instead of corrupting
+  the store; a lock older than two minutes (a crashed writer) is broken automatically.
+- The plugin uses a one-second lock timeout and **reschedules** when the store is busy, so a
+  concurrent CLI command never freezes the host event loop nor forks the chain.
+
+### Note
+
+- The data was not lost: the session logs on disk are the source of truth, and the forked vault
+  was rebuilt from them (`verify: ok`, five sessions). The broken vault is kept aside, untouched.
+- This is the failure mode the two-machine tests were meant to find. It was found locally,
+  before any real sync existed.
 ## 0.1.0-rc.18 — 2026-10-28
 
 ### Added

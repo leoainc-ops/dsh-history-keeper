@@ -88,3 +88,32 @@ network calls. Only *shipping a new version* is affected.
 | Where it is stored | `~/.npmrc` (never in the repository, never in a commit) |
 | What a legacy token needs | *Read and write*, package access limited to `dsh-history-keeper`, and **bypass 2FA** — a capability npm is retiring for publishing in January 2027 |
 
+
+## Recovering a forked chain
+
+Symptom: `verify` reports `SEQ_GAP` for a session and that session disappears from `status`.
+Cause: two processes wrote the store at the same time (before rc.19, which added the lock), so
+one manifest became unreachable and the surviving chain kept a hole.
+
+The session logs on disk are the source of truth; the vault is the copy. Rebuild rather than
+repair:
+
+```powershell
+# 1. keep the damaged vault, do not delete it
+Move-Item C:\Users\<you>\keeper-vault C:\Users\<you>\keeper-vault.forked-<date>
+
+# 2. a fresh store with the SAME passphrase, so the existing key file keeps working
+node bin/keeper.js init --store C:\Users\<you>\keeper-vault --key-file <passphrase file>
+
+# 3. publish everything again from the intact session logs
+node bin/keeper.js snapshot --store C:\Users\<you>\keeper-vault --home $env:USERPROFILE\.dsh
+
+# 4. prove it
+node bin/keeper.js verify --store C:\Users\<you>\keeper-vault --key-file <passphrase file>
+```
+
+The rebuilt vault has a new `storeId` (it is a new store) and the same device identity. The
+forked one stays usable for forensics: open it with the same passphrase.
+
+If the snapshot refuses a session with `QUARANTINED`, the reason is printed per rule; publish
+with `--force` only after checking that the match is not a real credential.
