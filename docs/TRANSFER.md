@@ -120,3 +120,13 @@ continuation is archived, not shown).
 
 To keep working on the topic on the other machine, **start a new conversation there**. It travels
 back as its own session, with no conflict and no decision to make.
+## Version skew between machines
+
+A session written by a **newer** DSH cannot be opened by an older one: the reader refuses any
+event type it does not know and that is not marked ignorable. Measured on 2026-10-30: logs from a
+harness with the *jobs* feature carry `job/registered` / `job/settled`, and an older harness
+refuses the whole session with `contains event type … unknown to this harness`.
+
+`restore` did its job — the bytes arrived intact and verified — but the host will not open them.
+Check the version of both installations **before** transferring, and update the older one first.
+Do not strip the events to force a load: that rewrites history and breaks the hash chain.

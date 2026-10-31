@@ -510,3 +510,31 @@ En lugar de discutir en abstracto, se puede **ver** el caso en cinco minutos sob
    misma identidad.
 
 La diferencia se ve en la lista del panel lateral, y recién ahí hay una decisión informada.
+## 11. Compatibilidad entre versiones del harness (hallazgo 30-oct)
+
+Una sesión escrita por un DSH **más nuevo** no se puede abrir en uno más viejo: el lector
+rechaza cualquier evento que no conozca y no esté marcado como ignorable.
+
+Caso medido: pc-b (harness más nuevo, con *jobs*) → pc-a (0.2.0-rc.2). De cuatro sesiones
+restauradas, dos contenían `job/registered` y `job/settled` y pc-a se negó a abrirlas; las otras
+dos cargaron sin problema. El keeper hizo su trabajo: los bytes llegaron intactos y verificados.
+El que rechaza es el host.
+
+### Consecuencias para el producto
+
+1. **El respaldo es fiel; la legibilidad depende del host.** `verify` no puede prometer que un
+   harness viejo lea lo que escribió uno nuevo. Hay que decirlo en la documentación y en el
+   mensaje de `restore`.
+2. **C.2 debe registrar la versión del harness** que capturó cada sesión, para avisar antes de
+   restaurar ("esta sesión la escribió DSH X; estás en Y").
+3. **No se reescriben eventos para "arreglar" un log**: quitar `job/*` rompería la exactitud byte
+   a byte y la cadena de hashes. La salida correcta es actualizar el host.
+4. **Salida de emergencia**: `keeper export <sesión>` que reconstruya el log y lo escriba como
+   texto legible o JSONL, para poder leer el historial aunque el host no pueda abrirlo. Es barato
+   (los bytes ya se reconstruyen) y desbloquea el caso "tengo el historial pero no puedo
+   abrirlo".
+
+### Regla operativa
+
+Antes de mover historial entre máquinas, comparar versiones de DSH. Si la de origen es mayor,
+**actualizar la de destino primero**.
