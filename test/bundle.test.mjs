@@ -37,7 +37,7 @@ test('shipped metadata stays ASCII-safe and version-consistent', () => {
   assert.match(pkg.description, /^[\x20-\x7E]+$/, 'description must be plain ASCII: encoding damage is invisible until npm shows it')
   const entry = fs.readFileSync(path.join(root, 'lib', 'index.js'), 'utf8')
   assert.ok(entry.includes("version = '" + pkg.version + "'"), 'lib/index.js must declare the same version as package.json')
-  for (const file of ['package.json', 'cordis.patch.yml', 'README.md', 'lib/index.js', 'bin/keeper.js']) {
+  for (const file of ['package.json', 'cordis.patch.yml', 'README.md', 'README-es.md', 'lib/index.js', 'lib/plugin.js', 'bin/keeper.js']) {
     const text = fs.readFileSync(path.join(root, file), 'utf8')
     assert.equal(/Ã|Â|â€/.test(text), false, file + ' contains mojibake (a writer re-encoded it)')
   }

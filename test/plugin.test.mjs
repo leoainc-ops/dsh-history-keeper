@@ -182,3 +182,32 @@ test('an automatic snapshot with a wrong passphrase warns instead of breaking th
   assert.equal(ctx.warnings.length, 1)
   assert.match(ctx.warnings[0], /wrong passphrase/)
 })
+
+test('compact and attachments are available from the conversation, and help lists them', async (t) => {
+  const row = makeRow()
+  t.after(() => removeDir(row.root))
+  initStore(row.storeDir, { passphrase: PASS, deviceName: 'plugin-test' })
+  const ctx = fakeContext()
+  apply(ctx, row.config)
+  const definition = ctx.commandsRegistered[0]
+
+  const help = await invoke(definition, 'help')
+  for (const name of ['init', 'status', 'snapshot', 'verify', 'compact', 'attachments']) {
+    assert.ok(help.text.includes(name), 'help must list ' + name)
+  }
+  assert.ok(definition.input.hint.includes('compact'), 'the hint must advertise compact')
+
+  const snap = await invoke(definition, 'snapshot')
+  assert.equal(snap.kind, 'success', snap.text)
+
+  const compacted = await invoke(definition, 'compact')
+  assert.equal(compacted.kind, 'success', compacted.text)
+  assert.match(compacted.text, /compacted 1 manifest\(s\) into one checkpoint/)
+
+  const again = await invoke(definition, 'compact')
+  assert.match(again.text, /nothing to compact/)
+
+  const attachments = await invoke(definition, 'attachments')
+  assert.equal(attachments.kind, 'success', attachments.text)
+  assert.match(attachments.text, /captured now: 0/)
+})

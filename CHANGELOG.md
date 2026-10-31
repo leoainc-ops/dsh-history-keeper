@@ -13,6 +13,27 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.20 — 2026-10-31
+
+### Added
+
+- `/keeper compact` and `/keeper attachments` inside the conversation: both were CLI-only, which
+  made the command surface look incomplete. They are safe operations (a checkpoint and a
+  read-only backfill), so they belong where the rest of the commands live.
+
+### Fixed
+
+- The command hint advertised only `status | snapshot | verify | help` and the help text omitted
+  `init`; both now list the whole surface and say which two operations stay in the CLI
+  (`restore` writes the live store, `gc` deletes objects).
+- The mojibake guard covered `package.json`, `README.md`, `lib/index.js` and `bin/keeper.js` but
+  not `lib/plugin.js` or `README-es.md`; both are covered now.
+
+### Note
+
+- A `â€”` seen in the help during review was an artefact of reading UTF-8 with PowerShell 5.1,
+  not a defect in the file. The guard is now driven by Node, so the diagnosis no longer depends
+  on how a human opens the file.
 ## 0.1.0-rc.19 — 2026-10-30
 
 ### Fixed

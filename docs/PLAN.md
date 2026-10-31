@@ -557,3 +557,35 @@ Antes de mover historial entre máquinas, comparar versiones de DSH. Si la de or
 **Procedimiento recomendado antes de actualizar**: cerrar DSH, copiar `~/.dsh` excluyendo
 `dsh-runtimes` (6,4 MB), actualizar, abrir, comprobar sesiones y `/keeper status`, y después
 `/keeper snapshot` mirando si aparece `DIVERGED`.
+## 12. Mejoras pedidas el 31-oct
+
+### 12.1 Agrupar las historias por equipo de origen
+
+**Pedido**: las sesiones importadas deben ordenarse por equipo de origen (`obras26` = pc-b) en
+lugar de caer todas en "Ungrouped". El origen se conoce: cada manifiesto lleva el dispositivo que
+publicó la sesión, y el store tiene una cabeza por dispositivo. Debe funcionar con **más de dos
+equipos**, no sólo dos.
+
+**Restricción honesta**: el panel lateral de DSH agrupa por *workspace* (ruta del proyecto), no
+por dispositivo. Un plugin **no puede renombrar "Ungrouped"**. Entonces hay tres niveles:
+
+| Nivel | Qué da | Depende de |
+|---|---|---|
+| **A. Vista propia** — `keeper status --by-device` y `keeper inventory` | lista las sesiones agrupadas por equipo de origen, con tamaño y proyecto | sólo nuestro código: el dato ya está en la bóveda |
+| **B. Workspaces sincronizados** (C.5) | la sesión aparece bajo un workspace real, no en "Ungrouped" | sincronizar la tabla de workspaces; si la carpeta no existe, el workspace se muestra igual |
+| **C. Pedido a DSH** | que un plugin pueda declarar **etiqueta/grupo** por sesión ("origen: obras26") | externo: necesita soporte del host |
+
+Empezar por A (barato y útil ya), seguir con B en C.5, y registrar C como pedido al ecosistema.
+
+### 12.2 Superficie de `/keeper` — hecho (rc.20)
+
+**Pedido**: `/keeper` y su menú (`status|snapshot|help`) parecían incompletos. Diagnóstico:
+
+- **Incompleto por omisión**: `compact` y `attachments` existían sólo como comandos de CLI.
+  Ahora están en el chat (`/keeper compact`, `/keeper attachments`), y el `help` los lista junto
+  con `init`.
+- **Intencional**: `restore` (escribe el store vivo) y `gc` (borra objetos) siguen siendo de CLI,
+  y el `help` explica por qué.
+- **Falso positivo propio**: un `â€”` que creí ver en el `help` era mi lectura con PowerShell 5.1
+  decodificando UTF-8 como ANSI; el archivo estaba bien. El test de mojibake ahora cubre también
+  `lib/plugin.js` y `README-es.md`, para que esto no dependa de cómo se lea el archivo.
