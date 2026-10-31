@@ -538,3 +538,22 @@ El que rechaza es el host.
 
 Antes de mover historial entre máquinas, comparar versiones de DSH. Si la de origen es mayor,
 **actualizar la de destino primero**.
+### 11.1 Actualizar el harness: qué se conserva y qué hay que prever
+
+- **Los datos no viven en la aplicación**: el home de DSH (`~/.dsh`) es independiente del
+  directorio de instalación. Una actualización encima conserva sesiones, adjuntos, perfiles,
+  credenciales y workspaces. De los 279 MB del home, **273 MB son runtimes que se reinstalan
+  solos**; los datos reales son **6,4 MB**.
+- **Riesgo 1 — migración de logs**: si el host nuevo reescribe los logs al abrirlos (cambio de
+  formato o de vocabulario), `snapshot` los verá como `DIVERGED` y se negará a publicarlos, por
+  diseño. Se necesita un **`--rebaseline` por sesión**: abrir una nueva línea de base con el log
+  migrado y conservar la anterior como archivo. Es la **única excepción legítima** a "sin
+  bifurcaciones": el que reescribió fue el host, no un usuario.
+- **Riesgo 2 — `engines.dsh`**: el plugin declara `>=0.1.0-rc.6 <0.3.0`. Un host 0.3+ queda fuera
+  del rango hasta publicar un keeper con el rango ampliado y probado.
+- **Riesgo 3 — perfil**: puede requerir volver a agregar el plugin (una línea en el patch). Los
+  datos no se tocan.
+
+**Procedimiento recomendado antes de actualizar**: cerrar DSH, copiar `~/.dsh` excluyendo
+`dsh-runtimes` (6,4 MB), actualizar, abrir, comprobar sesiones y `/keeper status`, y después
+`/keeper snapshot` mirando si aparece `DIVERGED`.
