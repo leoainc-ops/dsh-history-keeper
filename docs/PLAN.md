@@ -589,3 +589,32 @@ Empezar por A (barato y útil ya), seguir con B en C.5, y registrar C como pedid
 - **Falso positivo propio**: un `â€”` que creí ver en el `help` era mi lectura con PowerShell 5.1
   decodificando UTF-8 como ANSI; el archivo estaba bien. El test de mojibake ahora cubre también
   `lib/plugin.js` y `README-es.md`, para que esto no dependa de cómo se lea el archivo.
+### 12.3 P4 (`keeper export` a texto) — DIFERIDO por seguridad (decisión 31-oct)
+
+Preocupación del autor: exportar a texto legible baja el nivel de seguridad. Es correcto, y el
+análisis es este.
+
+**Qué cambia**: el comando produce un **artefacto de texto plano fuera de la bóveda**, en una
+ruta elegida por el usuario. Ese archivo ya no está cifrado, puede quedar olvidado, sincronizarse
+a la nube o terminar en un repositorio.
+
+**Qué NO cambia**: la bóveda y sus copias siguen cifradas; la clave no se toca; `verify` y
+`restore` conservan sus garantías; no se agrega texto plano dentro del store.
+
+**Contexto**: DSH ya guarda las sesiones comprimidas pero **no cifradas** en disco. La bóveda
+protege la *copia que viaja* (pendrive, nube), no el original local. Un export no cambia esa
+línea base: agrega una copia nueva, elegida a mano.
+
+**Por qué se difiere**: el caso que lo motivaba —sesiones escritas por un harness más nuevo— se
+resolvió actualizando el host. Sin un caso que no se pueda resolver actualizando, el costo de
+seguridad no se justifica.
+
+**Si alguna vez se implementa**, estas condiciones no son negociables:
+
+1. `--out <ruta>` obligatorio; nunca stdout por defecto, nunca una ruta dentro de la bóveda.
+2. Archivo con permisos de sólo el usuario (0600) y **sin sobrescribir**.
+3. **Gate de secretos primero**: si el texto matchea una regla, se niega salvo `--force`.
+4. Encabezado dentro del archivo: "COPIA EN TEXTO PLANO — no protegida por la bóveda".
+5. Aviso si el destino está en una carpeta sincronizada (Drive/OneDrive) o en un repositorio.
+6. Formato por defecto JSONL (fidelidad); el transcript Markdown, si existe, se marca como
+   *presentación, no evidencia*.
