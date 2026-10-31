@@ -13,6 +13,30 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.21 — 2026-10-31
+
+### Added
+
+- **`keeper inventory`**: sessions grouped by the device they came from, with the local state of
+  each one (`absent`, `identical`, `behind`, `ahead`, `different`) and whether this host can read
+  it. Answers the question asked before mounting a vault: *what do I have, from where, and will it
+  open here*.
+- **Origin records**: when a session is restored, this machine publishes it from then on, but it
+  did not write it. The origin is recorded in the DSH home and the inventory shows the session
+  under its true device with an `importada` mark. Works for any number of devices, not two.
+- **Compatibility preflight in `restore`**: the target host's event vocabulary is learned from its
+  own sessions, and a session that uses types this host has never written is skipped with the list
+  of those types. `--force` writes it anyway; `--no-preflight` disables the check.
+- **Exit codes**: `0` everything done, `3` completed with refusals or skips (a predicted outcome,
+  not a failure), `1` a real error — the distinction whose absence made an earlier restore look
+  broken.
+
+### Fixed
+
+- The vocabulary sample defaulted to the six newest sessions, which produced a **false positive**
+  on a real session (`assistant/attempt`, written by this host but only in an older log). The scan
+  now covers every local session within a byte budget, and when the budget cuts it the result is
+  **advisory** — a warning, never a skip.
 ## 0.1.0-rc.20 — 2026-10-31
 
 ### Added

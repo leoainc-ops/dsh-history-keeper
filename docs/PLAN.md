@@ -618,3 +618,13 @@ seguridad no se justifica.
 5. Aviso si el destino está en una carpeta sincronizada (Drive/OneDrive) o en un repositorio.
 6. Formato por defecto JSONL (fidelidad); el transcript Markdown, si existe, se marca como
    *presentación, no evidencia*.
+**Estado 31-oct: P1, P3 y 12.1-A hechos (rc.21).** `keeper inventory` agrupa por dispositivo de
+origen (con registro de origen al restaurar, válido para n equipos); el preflight de vocabulario
+evita restaurar sesiones que el host no puede leer, con `--force` y `--no-preflight`; los códigos
+de salida distinguen completado-con-rechazos (3) de error real (1). Hallazgo corregido en el
+camino: la muestra de vocabulario corta a 6 sesiones producía un falso positivo
+(`assistant/attempt`); ahora recorre todas las locales con presupuesto de bytes y degrada a
+aviso cuando el presupuesto corta.
+
+Pendiente derivado: propagar el origen dentro del manifiesto (para que viaje con la bóveda) y no
+sólo en el registro local; y aplicar el código 3 al `snapshot` cuando sólo haya cuarentenas.

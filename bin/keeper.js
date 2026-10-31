@@ -16,6 +16,7 @@ import process from 'node:process'
 import { generatePassphraseFile, readPassphraseFile } from '../lib/config.js'
 import { initStore, listDeviceHeads, openStore, readAllManifests, readManifestChain } from '../lib/store.js'
 import { collectGarbage, compact } from '../lib/compact.js'
+import { inventory } from '../lib/inventory.js'
 import { resolveDevice } from '../lib/device.js'
 import { backfillAttachments, publishedAttachments, publishedState, snapshot } from '../lib/snapshot.js'
 import { verifyStore } from '../lib/verify.js'
@@ -33,6 +34,7 @@ commands
   compact    replace the manifest chain with one checkpoint
   gc         delete objects the chain no longer references (needs --yes)
   verify     check every object, hash and chain
+  inventory  sessions grouped by the device they came from, with local state
   status     what the store holds and what is unpublished
   restore    rebuild a DSH home from the store
 
@@ -56,6 +58,7 @@ snapshot options
 
 restore options
   --dry-run                show the plan, write nothing
+  --no-preflight           write sessions this host cannot read (they will not open)
   --force                  keep the existing log and write the incoming copy aside
 `
 
@@ -68,7 +71,7 @@ function parse(argv) {
       continue
     }
     const key = token.slice(2)
-    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes') {
+    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight') {
       options[key] = true
       continue
     }
@@ -274,6 +277,32 @@ function main() {
     return
   }
 
+  if (command === 'inventory') {
+    const store = openFrom(options)
+    const report = inventory(store, { home })
+    const lines = [
+      'inventory of ' + store.dir,
+      '  host vocabulary: ' + report.hostVocabulary.types + ' event type(s) from ' + report.hostVocabulary.scanned + ' session(s)',
+    ]
+    for (const group of report.devices) {
+      lines.push('')
+      lines.push('  device ' + (group.deviceName ?? '(sin nombre)') + '  ' + group.deviceId.slice(0, 8) + '…  ' + group.sessions.length + ' session(s)')
+      void 0
+      for (const row of group.sessions) {
+        const local =
+          row.local === 'absent' ? 'not here' : row.local === 'identical' ? 'here, identical' : row.local === 'behind' ? 'here, behind' : row.local === 'ahead' ? 'here, ahead' : 'here, DIFFERENT'
+        const compat = row.readable
+          ? (row.advisory && row.unknownEvents.length > 0 ? 'readable (warn: ' + row.unknownEvents.slice(0, 2).join(', ') + ')' : 'readable')
+          : 'NOT readable (' + row.unknownEvents.slice(0, 3).join(', ') + (row.unknownEvents.length > 3 ? ', …' : '') + ')'
+        const origin = row.owner.imported ? ' <- importada' : ''
+        lines.push('    ' + row.sessionId.slice(0, 22) + '…  ' + humanBytes(row.bytes).padStart(9) + '  ' + local.padEnd(16) + '  ' + compat + origin)
+        if (row.cwd) lines.push('        ' + row.cwd)
+      }
+    }
+    print(report, options, lines.join('\n'))
+    return
+  }
+
   if (command === 'status') {
     const store = openFrom(options)
     const chain = readAllManifests(store)
@@ -309,12 +338,20 @@ function main() {
 
   if (command === 'restore') {
     const store = openFrom(options)
-    const result = restore(store, { home, dryRun: Boolean(options['dry-run']), force: Boolean(options.force) })
+    const result = restore(store, {
+      home,
+      dryRun: Boolean(options['dry-run']),
+      force: Boolean(options.force),
+      preflight: options['no-preflight'] !== true,
+    })
     const lines = ['restore into ' + result.home + (result.dryRun ? '  (dry run)' : '')]
     for (const item of result.created) lines.push('  + ' + item.sessionId + '  ' + humanBytes(item.bytes) + '  ' + item.target)
     for (const item of result.identical) lines.push('  = ' + item.sessionId + '  already present and identical')
     for (const item of result.setAside) lines.push('  ~ ' + item.sessionId + '  ' + item.message)
     for (const item of result.refused) lines.push('  ! ' + item.sessionId + '  ' + item.message + '  (' + item.target + ')')
+    for (const item of result.incompatible ?? []) {
+      lines.push('  x ' + item.sessionId + '  skipped: this host does not know ' + item.unknownEvents.join(', ') + ' (use --force to write it anyway)')
+    }
     for (const item of result.attachments ?? []) {
       lines.push('  ' + (item.action === 'created' ? '+' : item.action === 'present' ? '=' : '~') + ' attachment ' + item.hash.slice(0, 12) + '…  ' + humanBytes(item.bytes) + '  ' + item.action)
     }
@@ -323,7 +360,9 @@ function main() {
     lines.push('  sessions considered: ' + touched)
     if ((result.attachments ?? []).length > 0) lines.push('  attachments considered: ' + result.attachments.length)
     print(result, options, lines.join('\n'))
-    if (result.refused.length > 0 || result.problems.length > 0) process.exit(1)
+    if (result.problems.length > 0) process.exit(1)
+    if (result.refused.length > 0 || (result.incompatible ?? []).length > 0) process.exit(3) // completed, with refusals
+    return
     return
   }
 

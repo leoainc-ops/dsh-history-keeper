@@ -95,6 +95,31 @@ intact and the blob is not.
 references. `restore` writes them back to the same layout and never overwrites a different
 file already on disk (`ATTACHMENT_CONFLICT`).
 
+## Inventory, before mounting anything
+
+```sh
+keeper inventory --store ~/keeper-vault --home ~/.dsh
+```
+
+Lists every session in the vault **grouped by the device it came from**, with its size, project
+path, local state (`absent`, `identical`, `behind`, `ahead`, `different`) and whether this host
+can read it. A session restored from another machine keeps its origin and is shown as `importada`.
+
+The compatibility verdict is learned, not declared: the keeper compares the event types of each
+session against the types this host has written in its own sessions. When the sample had to be cut
+for size, the verdict is advisory (a warning) and never blocks.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Everything the command had to do was done |
+| `3` | Completed, with refusals or skips that are a predicted outcome (a different log already exists, a session this host cannot read) |
+| `1` | A real error: unreadable vault, integrity problem, usage mistake |
+
+`restore` also accepts `--no-preflight` (write sessions this host may not read) and `--force`
+(write a session with a different log already present, or an unreadable one).
+
 ## Compaction and garbage collection
 
 Reading the manifest chain costs one file per manifest, so a vault with hundreds of captures
