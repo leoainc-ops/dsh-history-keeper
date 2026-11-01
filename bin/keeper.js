@@ -78,12 +78,19 @@ function parse(argv) {
       options._.push(token)
       continue
     }
-    const key = token.slice(2)
+    // Accept both `--key value` and `--key=value`.
+    let key = token.slice(2)
+    let inline = null
+    const eq = key.indexOf('=')
+    if (eq >= 0) {
+      inline = key.slice(eq + 1)
+      key = key.slice(0, eq)
+    }
     if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight') {
       options[key] = true
       continue
     }
-    const value = argv[++i]
+    const value = inline ?? argv[++i]
     if (value === undefined) fail('missing value for --' + key)
     if (key === 'session') options.session.push(value)
     else if (key === 'allow-rule') options['allow-rule'] = [...(options['allow-rule'] ?? []), value]
@@ -301,6 +308,10 @@ function main() {
     if (!outDir) fail('merge needs --out <new store directory>')
     const outPassFile = outKey ?? null
     const outPass = outPassFile ? readPassphraseFile(outPassFile) : { passphrase: null }
+    const onDivergence = options['on-divergence'] ?? 'owner'
+    if (onDivergence !== 'owner' && onDivergence !== 'error') {
+      fail("--on-divergence accepts 'owner' (default) or 'error': a merged store keeps one visible conversation per session")
+    }
     const dryRun = Boolean(options['dry-run'])
     if (!dryRun) {
       if (!outPass.passphrase) fail('merge needs --out-key <passphrase file> for the new store')
@@ -313,6 +324,7 @@ function main() {
       dryRun,
       deviceName: options['device-name'] ?? 'merged',
       maxChunkBytes: options['max-chunk-bytes'] ? Number(options['max-chunk-bytes']) : undefined,
+      onDivergence: options['on-divergence'] ?? 'owner',
     })
 
     const lines = [
@@ -392,6 +404,7 @@ function main() {
       snapshots: chain.length,
       lastManifestAt: chain.length > 0 ? chain[chain.length - 1].createdAt : null,
       published: publishSummary,
+      archived: (published.archived ?? []).length,
       attachments: { blobs: blobs.size, bytes: [...blobs.values()].reduce((sum, entry) => sum + (entry.bytes ?? 0), 0) },
       checkedAt: toIso(),
     }
@@ -400,6 +413,7 @@ function main() {
       'device   ' + device.deviceName + ' (' + device.deviceId + ')  heads in store: ' + listDeviceHeads(store.dir).length,
       'snapshots ' + chain.length + (result.lastManifestAt ? '  last ' + formatTime(result.lastManifestAt) : ''),
       'published ' + publishSummary.sessions + ' session(s)  ' + publishSummary.frames + ' frame(s)  ' + humanBytes(publishSummary.bytes),
+      'archived  ' + (published.archived ?? []).length + ' continuation(s) kept from a device that was not the owner',
       'attachments ' + blobs.size + ' blob(s)  ' + humanBytes([...blobs.values()].reduce((sum, entry) => sum + (entry.bytes ?? 0), 0)),
     ]
     print(result, options, lines.join('\n'))
@@ -428,11 +442,13 @@ function main() {
     for (const item of result.problems) lines.push('  ! ' + (item.sessionId ?? '?') + '  ' + item.code + ': ' + item.message)
     const touched = result.created.length + result.identical.length + result.setAside.length + result.refused.length
     lines.push('  sessions considered: ' + touched)
+    if ((result.archived ?? 0) > 0) {
+      lines.push('  archived continuations in the vault: ' + result.archived + '  (kept, never restored — see keeper inventory)')
+    }
     if ((result.attachments ?? []).length > 0) lines.push('  attachments considered: ' + result.attachments.length)
     print(result, options, lines.join('\n'))
     if (result.problems.length > 0) process.exit(1)
     if (result.refused.length > 0 || (result.incompatible ?? []).length > 0) process.exit(3) // completed, with refusals
-    return
     return
   }
 

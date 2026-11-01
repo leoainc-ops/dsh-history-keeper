@@ -13,6 +13,28 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.23 — 2026-10-31
+
+### Decided
+
+- **Owner rule approved** (was a proposal since 29-oct). A merged vault keeps **one visible
+  conversation per session**: the lineage of the device that first published it. The other side of
+  a divergence is archived — verified, never restored, listed by `inventory`. This is the
+  project directive made mechanical: a restored session is read-only, so a machine that is not the
+  owner cannot silently change what the conversation shows. The archiving can only ever happen on
+  the non-owner side.
+
+### Added
+
+- `status` reports `archived N continuation(s) kept from a device that was not the owner`.
+- `restore` reports the archived continuations in the vault (never writes them).
+- `merge --on-divergence=owner|error`: `error` refuses to merge when the vaults disagree instead of
+  archiving.
+
+### Fixed
+
+- The CLI now accepts `--key=value` as well as `--key value`; before, `--on-divergence=error` was
+  silently swallowed and the merge ran with the default.
 ## 0.1.0-rc.22 — 2026-10-31
 
 ### Added

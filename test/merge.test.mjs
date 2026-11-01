@@ -6,8 +6,8 @@ import test from 'node:test'
 
 import { mergeStores, relation, resolveSession, surveySource } from '../lib/merge.js'
 import { restore } from '../lib/restore.js'
-import { snapshot } from '../lib/snapshot.js'
-import { initStore, openStore } from '../lib/store.js'
+import { publishedState, snapshot } from '../lib/snapshot.js'
+import { initStore, openStore, readAllManifests } from '../lib/store.js'
 import { verifyStore } from '../lib/verify.js'
 import { makeLog, removeDir, tempDir, writeSession } from './helpers.js'
 
@@ -134,3 +134,34 @@ test('merging a vault with itself is idempotent in content', (t) => {
   assert.equal(report.stats.objects, report.stats.chunks, 'each session is sealed once; no reuse is needed')
 })
 
+
+test('the divergence policy can refuse instead of archiving', (t) => {
+  const { root, storeA, storeB } = build(t)
+  assert.throws(
+    () => mergeStores([storeA, storeB], { outDir: path.join(root, 'strict'), passphrase: PASSPHRASE, onDivergence: 'error', dryRun: true }),
+    /disagree on 1 continuation/,
+  )
+  assert.throws(
+    () => mergeStores([storeA, storeB], { outDir: path.join(root, 'branch'), passphrase: PASSPHRASE, onDivergence: 'branch', dryRun: true }),
+    /onDivergence must be/,
+  )
+  // With no divergence there is nothing to refuse.
+  const alone = mergeStores([storeA], { outDir: path.join(root, 'alone'), passphrase: PASSPHRASE, onDivergence: 'error', dryRun: true })
+  assert.equal(alone.archived.length, 0)
+})
+
+test('status counts the archived continuations and restore reports them', (t) => {
+  const { root, storeA, storeB } = build(t)
+  const out = path.join(root, 'merged-status')
+  mergeStores([storeA, storeB], { outDir: out, passphrase: PASSPHRASE })
+
+  const merged = openStore(out, PASSPHRASE)
+  const chain = readAllManifests(merged, { fresh: true })
+  const state = publishedState(chain)
+  assert.equal(state.archived.length, 1)
+  assert.equal(state.archived[0].sessionId, 'diverged')
+
+  const restored = restore(merged, { home: path.join(root, 'home-restore'), dryRun: true })
+  assert.equal(restored.archived, 1, 'restore reports the archived continuation without writing it')
+  assert.equal(restored.created.length, 5)
+})

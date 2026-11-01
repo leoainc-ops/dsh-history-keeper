@@ -135,8 +135,10 @@ one wins; when they genuinely diverge, the owner's lineage stays visible and the
 continuation is stored as an **archived** entry — verified, counted by `verify`, never restored,
 and listed by `inventory`. Dedupe is by chunk content, so a shared prefix is stored once.
 
-A merge does not decide how a divergence should be presented (one conversation or two): that is a
-separate decision, and the archive keeps both options open.
+A merge keeps **one visible conversation per session** — the owner's (the device whose manifest
+first published it). The other continuation is archived: verified, never restored, listed by
+`keeper inventory`. `--on-divergence=error` refuses to merge when the vaults disagree instead of
+archiving. The owner line is what `status` reports as `archived N continuation(s)`.
 
 ## Compaction and garbage collection
 

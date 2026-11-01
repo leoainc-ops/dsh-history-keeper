@@ -130,3 +130,10 @@ refuses the whole session with `contains event type … unknown to this harness`
 `restore` did its job — the bytes arrived intact and verified — but the host will not open them.
 Check the version of both installations **before** transferring, and update the older one first.
 Do not strip the events to force a load: that rewrites history and breaks the hash chain.
+## Restored sessions are read-only
+
+A restored session belongs to the machine that wrote it. Reading it is fine; continuing it is not
+what the product expects, and the merge will enforce that mechanically: if a machine that is not
+the owner keeps working on a restored copy, those messages are preserved but archived — they do
+not appear in the visible conversation. To keep working on a subject on another machine, open a
+new conversation there; the imported one stays as the record of what happened where it happened.
