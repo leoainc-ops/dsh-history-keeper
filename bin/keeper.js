@@ -17,6 +17,7 @@ import { generatePassphraseFile, readPassphraseFile } from '../lib/config.js'
 import { initStore, listDeviceHeads, openStore, readAllManifests, readManifestChain } from '../lib/store.js'
 import { collectGarbage, compact } from '../lib/compact.js'
 import { inventory } from '../lib/inventory.js'
+import { landVault, packVault } from '../lib/carry.js'
 import { mergeStores } from '../lib/merge.js'
 import { resolveDevice } from '../lib/device.js'
 import { backfillAttachments, publishedAttachments, publishedState, snapshot } from '../lib/snapshot.js'
@@ -35,6 +36,8 @@ commands
   compact    replace the manifest chain with one checkpoint
   gc         delete objects the chain no longer references (needs --yes)
   merge      combine two vaults into a new one (sources untouched)
+  carry      update the vault, verify it and copy it to a pendrive
+  land       verify a carried vault, merge it and make it the local one
   inventory  sessions grouped by the device they came from
   verify     check every object, hash and chain
   inventory  sessions grouped by the device they came from, with local state
@@ -70,6 +73,16 @@ restore options
   --force                  keep the existing log and write the incoming copy aside
 `
 
+/** A carried key file, if the pack copied one, so `land` needs no extra flag. */
+function findStickKey(dir) {
+  const keyDir = path.join(dir, 'key')
+  try {
+    const files = fs.readdirSync(keyDir).filter((name) => !name.startsWith('.'))
+    return files.length === 1 ? path.join(keyDir, files[0]) : null
+  } catch {
+    return null
+  }
+}
 function parse(argv) {
   const options = { _: [], session: [] }
   for (let i = 0; i < argv.length; i++) {
@@ -289,6 +302,71 @@ function main() {
       dryRun ? '  nothing was deleted' : '  deleted: ' + report.deleted,
     ]
     print(report, options, lines.join('\n'))
+    return
+  }
+
+  if (command === 'carry') {
+    const store = openFrom(options)
+    const to = options.to
+    if (!to) fail('carry needs --to <directory on the pendrive>')
+    const report = packVault({
+      store,
+      home,
+      to: path.resolve(to),
+      keyFile: options['key-file'] ?? null,
+      withKey: options['with-key'] ? path.resolve(options['with-key']) : null,
+      maxChunkBytes: options['max-chunk-bytes'] ? Number(options['max-chunk-bytes']) : undefined,
+    })
+    const lines = [
+      'carry  -> ' + path.resolve(to),
+      '  captured: ' + report.captured.sessions + ' session(s)  ' + report.captured.chunks + ' chunk(s)  ' + humanBytes(report.captured.bytes),
+      '  verified: ' + (report.verified.ok ? 'ok' : 'PROBLEMS') + '  ' + report.verified.sessions + ' session(s)  ' + report.verified.frames + ' frame(s)  ' + humanBytes(report.verified.bytes) + '  ' + report.verified.archived + ' archived',
+      '  vault copied to ' + path.join(path.resolve(to), 'vault'),
+      report.previousReplaced ? '  the previous copy on the stick was replaced' : '  first copy on the stick',
+      report.keyCarried
+        ? '  ! the passphrase was copied to the stick: it now holds the secret and the vault'
+        : '  passphrase not carried: the other machine must already know it' + (report.keyFingerprint ? ' (fingerprint ' + report.keyFingerprint + ')' : ''),
+    ]
+    print(report, options, lines.join('\n'))
+    if (!report.verified.ok) process.exit(1)
+    return
+  }
+
+  if (command === 'land') {
+    const from = options.from
+    if (!from) fail('land needs --from <directory on the pendrive created by keeper carry>')
+    const stickDir = path.join(path.resolve(from), 'vault')
+    const stickKey = options['stick-key'] ?? findStickKey(path.resolve(from))
+    if (!fs.existsSync(path.join(stickDir, 'meta.json'))) fail('no carried vault at ' + stickDir + ' (run keeper carry on the other machine first)')
+    if (!stickKey) fail('land needs --stick-key <passphrase file for the carried vault>')
+
+    const localStore = openFrom(options)
+    const stickPass = readPassphraseFile(stickKey)
+    if (!stickPass.passphrase) fail('cannot read the passphrase of the carried vault: ' + stickPass.reason)
+    const stickStore = openStore(stickDir, stickPass.passphrase)
+    const keyOut = options['key-out'] ? path.resolve(options['key-out']) : path.resolve(options['key-file'])
+
+    const report = landVault({
+      from: path.resolve(from),
+      localStore,
+      stickStore,
+      stickPassphrase: stickPass.passphrase,
+      keyOut,
+      keepReplaced: options['keep-replaced'] !== false,
+      onDivergence: options['on-divergence'] ?? 'owner',
+      maxChunkBytes: options['max-chunk-bytes'] ? Number(options['max-chunk-bytes']) : undefined,
+    })
+    const lines = [
+      'landed into ' + report.localStore,
+      '  carried vault verified: ' + report.stick.verified.sessions + ' session(s)  ' + report.stick.verified.frames + ' frame(s)  ' + humanBytes(report.stick.verified.bytes),
+      '  merged: ' + report.sessions + ' session(s)  ' + report.archived + ' archived  ' + humanBytes(report.merged.bytes) + '  ' + report.merged.frames + ' frame(s)',
+      '  dedupe: ' + humanBytes(report.dedupedBytes) + ' not stored twice',
+      '  previous vault kept at ' + (report.replaced ?? '(deleted)'),
+      '  passphrase file written: ' + report.keyOut,
+      '  close and reopen DSH so it uses the new vault',
+    ]
+    print(report, options, lines.join('\n'))
+    if (!report.merged.ok) process.exit(1)
     return
   }
 

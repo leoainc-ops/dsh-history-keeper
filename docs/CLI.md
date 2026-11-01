@@ -120,6 +120,28 @@ for size, the verdict is advisory (a warning) and never blocks.
 `restore` also accepts `--no-preflight` (write sessions this host may not read) and `--force`
 (write a session with a different log already present, or an unreadable one).
 
+## Moving a vault between machines (the carry loop)
+
+Two commands, one per side, until automatic sync exists:
+
+```sh
+# machine that sends: update, verify, copy to the stick
+keeper carry --store ~/keeper-vault --key-file ~/keeper/passphrase.txt --home ~/.dsh --to F:\keeper-transfer
+
+# machine that receives (DSH closed): verify, merge, make it the local vault
+keeper land --from F:\keeper-transfer --store ~/keeper-vault --key-file ~/keeper/passphrase.txt \
+            --stick-key F:\keeper-transfer\key\passphrase.txt
+```
+
+`carry` writes a receipt (`carry.json`) with what it captured, the verification result and a
+fingerprint of the passphrase — which by default does **not** travel. `land` refuses to mount a
+vault that does not verify, keeps the previous local vault as `<vault>.replaced-<stamp>`, seals the
+merged vault with the carried passphrase (one phrase closes the loop) and rewrites the key file the
+plugin reads. Then reopen DSH.
+
+The operator folder holds `keeper-carry.ps1` and `keeper-land.ps1`: the same scripts work on any
+machine, and `land` refuses to run while DSH is open.
+
 ## Merging two vaults
 
 ```sh

@@ -13,6 +13,30 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.24 — 2026-10-31
+
+### Added
+
+- **`keeper carry`**: updates the local vault, verifies it, copies the folder to a pendrive and
+  writes a receipt (`carry.json`) with the store id, device, session/frame/byte counts and the
+  verification result. The passphrase does not travel by default; only its fingerprint does, so the
+  other side can confirm it has the right one. `--with-key` copies it explicitly, with a warning:
+  the stick then holds the secret and the vault together.
+- **`keeper land`**: verifies the carried vault, merges it with the local one, and makes the result
+  the local vault. The previous local vault is kept as `<vault>.replaced-<stamp>`; the merged one is
+  sealed with the carried passphrase, so one phrase closes the loop; the key file the plugin reads is
+  rewritten with it. If the carried vault does not verify, nothing is mounted.
+- **`scripts/keeper-carry.ps1` and `scripts/keeper-land.ps1`** in the operator folder (not the public
+  repo, which must not carry private paths): the same two scripts work on any machine, deriving every
+  path from the user profile. `land` refuses to run while DSH is open.
+- Environment overrides for the scripts (`KEEPER_CLI`, `KEEPER_VAULT`, `KEEPER_KEY`,
+  `KEEPER_DSH_HOME`, `DSH_NODE`) so they can be pointed at a test pair without editing them.
+
+### Verified
+
+A full round trip on the frozen pair: carry 5 sessions / 5.7 MiB; land produces 9 sessions, 1
+archived continuation, **4.3 MiB not stored twice**, `verify: ok`; the return leg (carry from the
+merged vault, land on the other side) keeps 9 sessions and verifies again.
 ## 0.1.0-rc.23 — 2026-10-31
 
 ### Decided
