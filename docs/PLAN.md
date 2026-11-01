@@ -628,3 +628,16 @@ aviso cuando el presupuesto corta.
 
 Pendiente derivado: propagar el origen dentro del manifiesto (para que viaje con la bóveda) y no
 sólo en el registro local; y aplicar el código 3 al `snapshot` cuando sólo haya cuarentenas.
+**Estado 31-oct: C.2 hecho (rc.22).** `keeper merge` construye una bóveda nueva con la unión y no
+toca las fuentes. Reglas del mazo implementadas: idéntico → una copia; prefijo → gana el más largo;
+divergente → la línea del dueño queda visible y **la otra continuación se archiva** (verificada,
+nunca restaurada, listada por `inventory`). El dedupe es **por contenido de chunk**, no por sesión.
+
+Medición sobre el par congelado (pc-a y pc-b del 30-oct): 9 sesiones visibles, 1 archivada, 23
+chunks sellados, 6 reutilizados = **4,3 MiB que no se guardan dos veces** (el informe anterior
+sólo contaba sesiones idénticas y daba 253,7 KiB). `verify` de la bóveda unida: ok, 4.385 frames,
+6,5 MiB.
+
+Lo que C.2 **no** decide: si una divergencia se muestra como una conversación con la cola del otro
+equipo archivada o como dos conversaciones. Ambas opciones siguen abiertas porque el archivo
+conserva los bytes; eso es C.4.

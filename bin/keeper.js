@@ -17,6 +17,7 @@ import { generatePassphraseFile, readPassphraseFile } from '../lib/config.js'
 import { initStore, listDeviceHeads, openStore, readAllManifests, readManifestChain } from '../lib/store.js'
 import { collectGarbage, compact } from '../lib/compact.js'
 import { inventory } from '../lib/inventory.js'
+import { mergeStores } from '../lib/merge.js'
 import { resolveDevice } from '../lib/device.js'
 import { backfillAttachments, publishedAttachments, publishedState, snapshot } from '../lib/snapshot.js'
 import { verifyStore } from '../lib/verify.js'
@@ -33,6 +34,8 @@ commands
   attachments  capture blobs referenced by already-published sessions
   compact    replace the manifest chain with one checkpoint
   gc         delete objects the chain no longer references (needs --yes)
+  merge      combine two vaults into a new one (sources untouched)
+  inventory  sessions grouped by the device they came from
   verify     check every object, hash and chain
   inventory  sessions grouped by the device they came from, with local state
   status     what the store holds and what is unpublished
@@ -55,6 +58,11 @@ snapshot options
   --no-attachments         do not capture the blobs sessions reference
   --allow-rule <id>        disable one secret rule (repeatable)
   --force                  publish even inside the window, or past a quarantine
+
+merge options
+  --a <dir> --a-key <file>   first vault and its passphrase file
+  --b <dir> --b-key <file>   second vault and its passphrase file
+  --out <dir> --out-key <f>  new vault directory and its passphrase file
 
 restore options
   --dry-run                show the plan, write nothing
@@ -277,6 +285,62 @@ function main() {
     return
   }
 
+  if (command === 'merge') {
+    const sides = []
+    for (const side of ['a', 'b']) {
+      const dir = options[side]
+      const keyFile = options[side + '-key']
+      if (!dir || !keyFile) fail('merge needs --' + side + ' <store> and --' + side + '-key <passphrase file>')
+      if (!fs.existsSync(path.join(dir, 'meta.json'))) fail('no keeper store at ' + dir)
+      const pass = readPassphraseFile(keyFile)
+      if (!pass.passphrase) fail('cannot read the passphrase for ' + side + ': ' + pass.reason)
+      sides.push(openStore(path.resolve(dir), pass.passphrase))
+    }
+    const outDir = options.out
+    const outKey = options['out-key']
+    if (!outDir) fail('merge needs --out <new store directory>')
+    const outPassFile = outKey ?? null
+    const outPass = outPassFile ? readPassphraseFile(outPassFile) : { passphrase: null }
+    const dryRun = Boolean(options['dry-run'])
+    if (!dryRun) {
+      if (!outPass.passphrase) fail('merge needs --out-key <passphrase file> for the new store')
+      if (fs.existsSync(path.join(outDir, 'meta.json'))) fail('a store already exists at ' + outDir + '; pick a new directory')
+    }
+
+    const report = mergeStores(sides, {
+      outDir: path.resolve(outDir),
+      passphrase: outPass.passphrase,
+      dryRun,
+      deviceName: options['device-name'] ?? 'merged',
+      maxChunkBytes: options['max-chunk-bytes'] ? Number(options['max-chunk-bytes']) : undefined,
+    })
+
+    const lines = [
+      'merge' + (dryRun ? '  (dry run: nothing written)' : '  -> ' + report.outDir),
+    ]
+    for (const source of report.sources) {
+      lines.push('  source ' + (source.deviceName ?? '?') + '  ' + String(source.storeId).slice(0, 8) + '…  ' + source.sessions + ' session(s)  ' + source.attachments + ' attachment(s)')
+    }
+    lines.push('')
+    for (const session of report.sessions) {
+      lines.push('  ' + session.sessionId.slice(0, 22) + '…  ' + humanBytes(session.bytes).padStart(10) + '  ' + session.action + '  origin ' + (session.origin.deviceName ?? '?'))
+    }
+    for (const item of report.archived) {
+      lines.push('  ' + item.sessionId.slice(0, 22) + '…  ' + humanBytes(item.bytes).padStart(10) + '  archived (' + (item.origin.deviceName ?? '?') + ')  ' + item.archiveKey)
+    }
+    lines.push('')
+    lines.push('  sessions visible: ' + report.sessions.length + '   archived: ' + report.archived.length)
+    lines.push('  attachments: ' + report.attachments)
+    lines.push('  chunks sealed: ' + report.stats.chunks + '   reused: ' + report.stats.dedupedChunks + ' (' + humanBytes(report.stats.dedupedBytes) + ' not stored twice)')
+    if (report.verification) {
+      lines.push('  verification: ' + (report.verification.ok ? 'ok' : 'PROBLEMS') + '  sessions ' + report.verification.sessions + '  archived ' + report.verification.archived + '  frames ' + report.verification.frames + '  ' + humanBytes(report.verification.bytes))
+      if (report.verification.problems.length > 0) lines.push('  ! ' + report.verification.problems.join(', '))
+    }
+    print(report, options, lines.join('\n'))
+    if (report.verification && !report.verification.ok) process.exit(1)
+    return
+  }
+
   if (command === 'inventory') {
     const store = openFrom(options)
     const report = inventory(store, { home })
@@ -294,9 +358,15 @@ function main() {
         const compat = row.readable
           ? (row.advisory && row.unknownEvents.length > 0 ? 'readable (warn: ' + row.unknownEvents.slice(0, 2).join(', ') + ')' : 'readable')
           : 'NOT readable (' + row.unknownEvents.slice(0, 3).join(', ') + (row.unknownEvents.length > 3 ? ', …' : '') + ')'
-        const origin = row.owner.imported ? ' <- importada' : ''
-        lines.push('    ' + row.sessionId.slice(0, 22) + '…  ' + humanBytes(row.bytes).padStart(9) + '  ' + local.padEnd(16) + '  ' + compat + origin)
+        lines.push('    ' + row.sessionId.slice(0, 22) + '…  ' + humanBytes(row.bytes).padStart(9) + '  ' + local.padEnd(16) + '  ' + compat)
         if (row.cwd) lines.push('        ' + row.cwd)
+      }
+    }
+    if ((report.archived ?? []).length > 0) {
+      lines.push('')
+      lines.push('  archived continuations (kept, never restored): ' + report.archived.length)
+      for (const item of report.archived) {
+        lines.push('    ' + item.sessionId.slice(0, 22) + '…  ' + humanBytes(item.bytes).padStart(9) + '  ' + (item.cwd ?? ''))
       }
     }
     print(report, options, lines.join('\n'))

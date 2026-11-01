@@ -120,6 +120,24 @@ for size, the verdict is advisory (a warning) and never blocks.
 `restore` also accepts `--no-preflight` (write sessions this host may not read) and `--force`
 (write a session with a different log already present, or an unreadable one).
 
+## Merging two vaults
+
+```sh
+keeper merge --a ~/vault-pc --a-key ~/a.txt --b ~/vault-b --b-key ~/b.txt \
+             --out ~/vault-merged --out-key ~/merged.txt
+```
+
+Reads both vaults and writes a **new** one; the sources are never modified. `--dry-run` shows the
+plan and writes nothing. The command refuses to write into an existing store.
+
+Rules: identical content becomes one copy; when one lineage is a prefix of the other the longer
+one wins; when they genuinely diverge, the owner's lineage stays visible and the other
+continuation is stored as an **archived** entry — verified, counted by `verify`, never restored,
+and listed by `inventory`. Dedupe is by chunk content, so a shared prefix is stored once.
+
+A merge does not decide how a divergence should be presented (one conversation or two): that is a
+separate decision, and the archive keeps both options open.
+
 ## Compaction and garbage collection
 
 Reading the manifest chain costs one file per manifest, so a vault with hundreds of captures

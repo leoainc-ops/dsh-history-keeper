@@ -13,6 +13,34 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.22 — 2026-10-31
+
+### Added
+
+- **`keeper merge`**: combines two vaults into a **new** one without touching either source.
+  - identical content → one copy;
+  - one lineage a prefix of the other → the longer one wins, silently;
+  - genuinely diverged → the owner's lineage stays visible and the other continuation is kept as
+    an **archived** entry: verified like any other chunk, never restored, listed by `inventory`.
+  - dedupe happens at the **chunk level** by content hash, so a shared prefix is sealed once.
+- `--dry-run` for a merge writes nothing; `--out-key` supplies the passphrase of the new vault;
+  the command refuses to write over an existing store.
+- Archived continuations are verified by `verify` (reported in the totals) and shown by
+  `inventory` under "archived continuations (kept, never restored)".
+- Inventory now prefers the origin recorded **inside the manifest** over the local record, so a
+  merged vault — or one restored on a third machine — still groups sessions by their true device.
+
+### Measured on the frozen pair (pc-a 2026-10-30, pc-b 2026-10-30)
+
+```text
+sessions visible 9   archived 1   chunks sealed 23   reused 6 (4.3 MiB not stored twice)
+verification ok   sessions 9   archived 1   frames 4385   6.5 MiB
+```
+
+The union of the two vaults reproduces the expected 9 conversations; the diverged session
+(`dd4e2186`) keeps pc-a's 5.3 MiB lineage visible and pc-b's 4.6 MiB continuation archived. The
+chunk-level dedupe saves **4.3 MiB**, far more than the 253.7 KiB that only counting identical
+whole sessions suggested.
 ## 0.1.0-rc.21 — 2026-10-31
 
 ### Added
