@@ -16,12 +16,15 @@ import process from 'node:process'
 import { generatePassphraseFile, readPassphraseFile } from '../lib/config.js'
 import { initStore, listDeviceHeads, openStore, readAllManifests, readManifestChain } from '../lib/store.js'
 import { collectGarbage, compact } from '../lib/compact.js'
+import { backupVault } from '../lib/backup.js'
+import { fuseLineages } from '../lib/fuse.js'
 import { inventory } from '../lib/inventory.js'
+import { lineageReport } from '../lib/lineage.js'
 import { landVault, packVault } from '../lib/carry.js'
 import { mergeStores } from '../lib/merge.js'
 import { resolveDevice } from '../lib/device.js'
 import { backfillAttachments, publishedAttachments, publishedState, snapshot } from '../lib/snapshot.js'
-import { verifyStore } from '../lib/verify.js'
+import { collectSessions, verifyStore } from '../lib/verify.js'
 import { restore } from '../lib/restore.js'
 import { formatTime, humanBytes, toIso } from '../lib/util.js'
 
@@ -39,8 +42,14 @@ commands
   carry      update the vault, verify it and copy it to a pendrive
   land       verify a carried vault, merge it and make it the local one
   inventory  sessions grouped by the device they came from
+  lineage    which conversations were continued, and which copy is the newest
+  fuse       rewrite a continued conversation as one log (prefix + both tails)
+  backup     an exact, verified copy of the vault (guard rail before a fusion)
   verify     check every object, hash and chain
-  inventory  sessions grouped by the device they came from, with local state
+  inventory  sessions grouped by the device they came from
+  lineage    which conversations were continued, and which copy is the newest
+  fuse       rewrite a continued conversation as one log (prefix + both tails)
+  backup     an exact, verified copy of the vault (guard rail before a fusion), with local state
   status     what the store holds and what is unpublished
   restore    rebuild a DSH home from the store
 
@@ -302,6 +311,89 @@ function main() {
       dryRun ? '  nothing was deleted' : '  deleted: ' + report.deleted,
     ]
     print(report, options, lines.join('\n'))
+    return
+  }
+
+  if (command === 'fuse') {
+    const sessionId = options.session && options.session.length > 0 ? options.session[0] : null
+    if (!sessionId) fail('fuse needs --session <id>')
+    const store = openFrom(options)
+    const { sessions, archived } = collectSessions(store)
+    const visible = sessions.get(sessionId)
+    const others = [...archived.values()].filter((entry) => entry.sessionId === sessionId)
+    if (!visible && others.length === 0) fail('no such session in the vault: ' + sessionId)
+
+    const lineages = []
+    if (visible) lineages.push({ buffer: visible.buffer, label: 'visible' })
+    others.forEach((entry, index) => lineages.push({ buffer: entry.buffer, label: 'archived-' + (index + 1) }))
+    if (lineages.length < 2) {
+      print({ ok: true, fused: false }, options, 'nothing to fuse: ' + sessionId + ' has a single lineage')
+      return
+    }
+
+    const fused = fuseLineages({ sessionId, lineages })
+    const when = (value) => (value ? new Date(value).toISOString().slice(0, 16).replace('T', ' ') : '?')
+    const lines = [
+      'fusion of ' + sessionId,
+      '  lineages: ' + fused.stats.lineages + '   shared prefix: ' + fused.stats.prefixLines + ' line(s)  ' + humanBytes(fused.stats.prefixBytes) + ' (' + humanBytes(fused.stats.prefixBytesReused) + ' reused byte-for-byte)',
+    ]
+    for (const tail of fused.stats.tails) {
+      lines.push('  tail ' + tail.label.padEnd(10) + '  ' + String(tail.lines).padStart(5) + ' event(s)  ' + humanBytes(tail.bytes).padStart(10) + '  ends ' + when(tail.lastAt))
+    }
+    lines.push('  fused: ' + fused.stats.events + ' event(s)  ' + humanBytes(fused.stats.bytes) + '  first ' + when(fused.stats.firstEventAt) + '  last ' + when(fused.stats.lastEventAt))
+    lines.push('  the original lineages stay in the vault; this is a derived log')
+
+    const out = options.out
+    const dryRun = Boolean(options['dry-run'])
+    if (out && !dryRun) {
+      fs.mkdirSync(path.dirname(path.resolve(out)), { recursive: true })
+      fs.writeFileSync(path.resolve(out), fused.buffer)
+      lines.push('  written to ' + path.resolve(out))
+    } else if (dryRun) {
+      lines.push('  dry run: nothing written')
+    }
+    print({ ...fused.stats, out: out ? path.resolve(out) : null }, options, lines.join('\n'))
+    return
+  }
+
+  if (command === 'lineage') {
+    const store = openFrom(options)
+    const report = lineageReport(store)
+    const when = (value) => (value ? new Date(value).toISOString().slice(0, 16).replace('T', ' ') : '?')
+    const lines = ['lineage of ' + store.dir]
+    for (const row of report.sessions) {
+      const state = row.state === 'continued' ? 'CONTINUED' : row.state === 'orphan-archive' ? 'ORPHAN ARCHIVE' : 'linear'
+      lines.push('  ' + state.padEnd(15) + row.sessionId.slice(0, 24) + '…  ' + (row.cwd ?? ''))
+      if (row.visible) {
+        lines.push('      visible      ' + humanBytes(row.visible.bytes).padStart(10) + '  last ' + when(row.visible.lastEventAt) + (row.visibleIsNewest ? '  (newest)' : '  (NOT the newest)'))
+      }
+      for (const item of row.continuations) {
+        lines.push('      archived     ' + humanBytes(item.bytes).padStart(10) + '  last ' + when(item.lastEventAt))
+      }
+    }
+    lines.push('')
+    lines.push('  linear: ' + report.totals.linear + '   continued: ' + report.totals.continued + '   lineages: ' + report.totals.lineages + '   archived: ' + report.totals.archived)
+    print(report, options, lines.join('\n'))
+    return
+  }
+
+  if (command === 'backup') {
+    const to = options.to
+    if (!to) fail('backup needs --to <directory> for the copy')
+    const pass = readPassphraseFile(options['key-file'] ?? null)
+    if (!pass.passphrase) fail('backup needs the passphrase of the vault: ' + (pass.reason ?? 'pass --key-file'))
+    const store = openFrom(options)
+    const report = backupVault({ dir: store.dir, passphrase: pass.passphrase, to: path.resolve(to) })
+    const lines = [
+      'backup of ' + report.to,
+      '  files: ' + report.files + '  ' + humanBytes(report.bytes),
+      '  verified: ' + (report.verified.ok ? 'ok' : 'PROBLEMS') + '  ' + report.verified.sessions + ' session(s)  ' + report.verified.archived + ' archived  ' + report.verified.frames + ' frame(s)',
+      '  manifest: ' + report.manifestPath,
+      '  files sha256: ' + report.manifestSha256,
+    ]
+    if (!report.verified.ok) lines.push('  ! ' + report.verified.problems.join(', '))
+    print(report, options, lines.join('\n'))
+    if (!report.verified.ok) process.exit(1)
     return
   }
 

@@ -120,6 +120,28 @@ for size, the verdict is advisory (a warning) and never blocks.
 `restore` also accepts `--no-preflight` (write sessions this host may not read) and `--force`
 (write a session with a different log already present, or an unreadable one).
 
+## Continued conversations: diagnose, fuse, protect
+
+```sh
+# which conversations were continued, and which copy is the newest
+keeper lineage --store ~/history-keeper --key-file ~/history-keeper.key
+
+# rewrite a continued conversation as one log (shared prefix + both tails)
+keeper fuse --store ~/history-keeper --key-file ~/history-keeper.key \
+            --session <session-id> --out ./fused.jsonl.zstd
+
+# an exact, verified copy before touching anything
+keeper backup --store ~/history-keeper --key-file ~/history-keeper.key --to ~/backups/pre-fusion
+```
+
+`lineage` marks a session as `CONTINUED` when the vault holds more than one lineage for it, and says
+whether the visible copy is the newest. `fuse` builds one log from the prefix and the tails, ordered
+so the newest work ends the conversation and so two machines produce the same bytes; the prefix is
+copied byte-for-byte so dedupe still applies. The original lineages are never removed.
+
+`backup` holds the store lock while it copies, hashes every file into `<dest>.manifest.json` and
+verifies the copy; `verifyBackup` can prove the copy later. It refuses a non-empty destination.
+
 ## Moving a vault between machines (the carry loop)
 
 Two commands, one per side, until automatic sync exists:

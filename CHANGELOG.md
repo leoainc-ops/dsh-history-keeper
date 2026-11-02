@@ -13,6 +13,28 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.25 — 2026-11-02
+
+### Added
+
+- **`keeper lineage`**: distinguishes **continued** conversations (two or more lineages of the same
+  session) from **linear** ones, with each lineage's size and last event, and a flag when the
+  visible copy is *not* the newest. This is the report that shows what the owner rule archived.
+  Measured on the field vault: 3 continued, 6 linear, 12 lineages.
+- **`keeper fuse`**: rewrites a continued conversation as **one log** — shared prefix, then each
+  tail in a deterministic order (the one that ends first goes first, tie-broken by content hash, so
+  every machine computes the same bytes). The prefix frames are reused byte-for-byte, so chunk
+  dedupe still applies; only the tails are renumbered, starting after the prefix's last `seq`. The
+  original lineages stay in the vault. Measured: `1f151636` = 1.0 MiB prefix + 558-event tail +
+  1-event tail → 798 events, last event 2026-11-02 18:56.
+- **`keeper backup`**: an exact copy of a vault taken **with the store lock held**, every file
+  hashed into a manifest, and the copy verified. `verifyBackup` proves a copy later. It refuses a
+  non-empty destination and never touches the source. This is the guard rail for any fusion:
+  pc-a's vault was backed up (457 files, 9.6 MiB, `verify: ok`) before touching anything.
+
+### Fixed
+
+- `lastEventAt` was reading the raw (still zstd-compressed) session bytes; it decompresses now.
 ## 0.1.0-rc.24 — 2026-10-31
 
 ### Added
