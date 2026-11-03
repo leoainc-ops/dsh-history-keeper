@@ -17,6 +17,7 @@ import { generatePassphraseFile, readPassphraseFile } from '../lib/config.js'
 import { initStore, listDeviceHeads, openStore, readAllManifests, readManifestChain } from '../lib/store.js'
 import { collectGarbage, compact } from '../lib/compact.js'
 import { inventory } from '../lib/inventory.js'
+import { exportVault } from '../lib/export.js'
 import { resolvePaths } from '../lib/paths.js'
 import { mergeStores } from '../lib/merge.js'
 import { resolveDevice } from '../lib/device.js'
@@ -38,6 +39,7 @@ commands
   merge      combine two vaults into a new one (sources untouched)
   inventory  sessions grouped by the device they came from
   paths      where every keeper file lives on this machine
+  export     verify the vault and copy it to a pendrive, with a receipt
   verify     check every object, hash and chain
   status     what the store holds and what is unpublished
   restore    rebuild a DSH home from the store
@@ -127,7 +129,7 @@ function passphraseFrom(options, behaviour = {}) {
   if (fromEnv && fromEnv.length >= 8) return { passphrase: fromEnv, source: 'env ' + name, generated: null }
   if (fromEnv) fail('the passphrase in $' + name + ' is shorter than 8 characters')
 
-  const keyFile = path.resolve(options['key-file'] ?? defaultKeyFile())
+  const keyFile = path.resolve(options['key-file'] ?? resolvePaths({ home: options.home ?? defaultHome() }).key)
   const file = readPassphraseFile(keyFile)
   if (file.passphrase) return { passphrase: file.passphrase, source: 'key file ' + keyFile, generated: null }
   if (file.reason && !/cannot read/u.test(file.reason)) fail(file.reason + ': ' + keyFile)
@@ -141,9 +143,17 @@ function passphraseFrom(options, behaviour = {}) {
 }
 
 function openFrom(options) {
-  const store = options.store
-  if (!store) fail('--store <dir> is required')
-  if (!fs.existsSync(path.join(store, 'meta.json'))) fail('no keeper store at ' + store)
+  // The canonical layout decides when no flag is given, so the CLI, the plugin and the operator
+  // scripts resolve the same vault and key (lib/paths.js is the single source of truth).
+  const layout = resolvePaths({
+    home: options.home ?? defaultHome(),
+    vault: options.store ?? null,
+    key: options['key-file'] ?? null,
+  })
+  const store = options.store ?? layout.vault
+  if (!fs.existsSync(path.join(store, 'meta.json'))) {
+    fail('no keeper store at ' + store + ' (run: keeper init, or pass --store <dir>)')
+  }
   return openStore(path.resolve(store), passphraseFrom(options).passphrase)
 }
 
@@ -404,6 +414,42 @@ function main() {
     ]
     if (layout.legacy) lines.push('', '  a vault from the previous layout exists at ' + layout.legacy + '; `keeper status` uses it until it is moved to the canonical path')
     print(layout, options, lines.join('\n'))
+    return
+  }
+
+  if (command === 'export') {
+    const to = options.to
+    if (!to) fail('export needs --to <directory on the pendrive>')
+    const layout = resolvePaths({ home, vault: options.store ?? null, key: options['key-file'] ?? null })
+    const pass = passphraseFrom(options)
+    const store = openStore(layout.vault, pass.passphrase)
+    const pkgPath = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..', 'package.json')
+    let pluginVersion = null
+    try {
+      pluginVersion = JSON.parse(fs.readFileSync(pkgPath, 'utf8')).version
+    } catch {
+      pluginVersion = null
+    }
+    const report = exportVault({
+      store,
+      passphrase: pass.passphrase,
+      to: path.resolve(to),
+      keyFile: options['key-file'] ?? layout.key,
+      pluginVersion,
+      keepReplaced: options['no-keep-replaced'] !== true,
+    })
+    const lines = [
+      'export  ' + report.copy.dir,
+      '  vault: ' + report.source.storeId + '  device ' + (report.source.deviceName ?? '?') + '  format ' + (report.source.format ?? '?'),
+      '  verified: ' + (report.verified.ok ? 'ok' : 'PROBLEMS') + '  ' + report.totals.sessions + ' session(s)  ' + report.totals.frames + ' frame(s)  ' + humanBytes(report.totals.bytes),
+      '  copy: ' + report.copy.files + ' file(s)  ' + humanBytes(report.copy.bytes),
+      report.copy.replaced ? '  previous copy kept at ' + report.copy.replaced : '  first copy on the stick',
+      '  receipt: ' + report.receiptPath,
+      report.keyFingerprint ? '  key fingerprint: ' + report.keyFingerprint + '  (the passphrase itself did not travel)' : '  key fingerprint: not computed',
+    ]
+    if (report.warning) lines.push('  ! ' + report.warning)
+    print(report, options, lines.join('\n'))
+    if (!report.verified.ok) process.exit(1)
     return
   }
 

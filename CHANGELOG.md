@@ -13,6 +13,24 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.32 — 2026-11-03
+
+### Added
+
+- **`keeper export`**: verifies the vault, copies it to a pendrive and writes a receipt
+  (`carry-<ts>.json`) with the store id, device, format, plugin version, totals, the verification of
+  **the copy** (not just of the source), file/byte counts, the replaced directory if there was one,
+  and a fingerprint of the passphrase — never the passphrase. It only reads the store, so it is safe
+  to run with DSH open; the previous copy on the stick is kept as `vault.replaced-<ts>`.
+- **`keeper paths` is now the CLI's default**: `status`, `verify`, `export`, `restore` and the rest
+  resolve the vault and the key from `lib/paths.js` when no `--store`/`--key-file` is given, so the
+  plugin, the CLI and the operator scripts cannot disagree about where things live. A vault in the
+  previous layout (`<usuario>/keeper-vault`) is detected and used.
+
+### Verified
+
+`keeper status` and `keeper export --to <dir>` with no flags on the real machine: store resolved,
+10 sessions / 7 494 frames / 11.1 MiB, copy of 662 files verified `ok`, receipt written.
 ## 0.1.0-rc.31 — 2026-11-03
 
 **Rollback to the `0.1.0-rc.23` feature set.** The transport cycle added in rc.24–rc.30
