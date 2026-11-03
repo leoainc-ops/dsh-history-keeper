@@ -13,6 +13,29 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.31 — 2026-11-03
+
+**Rollback to the `0.1.0-rc.23` feature set.** The transport cycle added in rc.24–rc.30
+(`carry`, `land`, `merge` with synthesis, `fuse`, `install`, `rebaseline`, `backup`) is removed:
+it produced three corrupt session logs in a row because a DSH log is a state machine with an edit
+history, not a list of lines. Versions rc.24–rc.30 stay published as a record and are deprecated.
+
+### Added
+
+- **`keeper paths`**: the single source of truth for where every keeper file lives, with the
+  canonical layout (`<home>/history-keeper`, `.key`, `-device.json`, `.replaced-*`, `.backup-*`,
+  `<home>/sessions`, `<home>/attachments`, the pendrive folder) and detection of the previous
+  layout (`<usuario>/keeper-vault`), which keeps working until it is moved.
+- `docs/LESSONS.md`: what the host's session format requires, what worked in the field, the design
+  mistakes made here and the corrections worth re-applying.
+- `docs/TRANSPORT.md`: the transport design that replaces the removed cycle — the vault travels as
+  a folder, sessions are restored byte-exact, nothing is ever synthesized.
+
+### Kept from this stage (for when the writer is revisited)
+
+The lessons file records the fixes that were proven and then withdrawn: head CAS (`HEAD_MOVED`),
+a stale lock only broken when its owner is gone, newest-descriptor-wins in the chain, and `carry`
+writing with the device identity.
 ## 0.1.0-rc.30 — 2026-11-02
 
 ### Fixed

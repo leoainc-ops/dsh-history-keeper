@@ -16,16 +16,12 @@ import process from 'node:process'
 import { generatePassphraseFile, readPassphraseFile } from '../lib/config.js'
 import { initStore, listDeviceHeads, openStore, readAllManifests, readManifestChain } from '../lib/store.js'
 import { collectGarbage, compact } from '../lib/compact.js'
-import { backupVault } from '../lib/backup.js'
-import { fuseLineages } from '../lib/fuse.js'
-import { installLog, rebaseline } from '../lib/install.js'
 import { inventory } from '../lib/inventory.js'
-import { lineageReport } from '../lib/lineage.js'
-import { landVault, packVault } from '../lib/carry.js'
+import { resolvePaths } from '../lib/paths.js'
 import { mergeStores } from '../lib/merge.js'
 import { resolveDevice } from '../lib/device.js'
 import { backfillAttachments, publishedAttachments, publishedState, snapshot } from '../lib/snapshot.js'
-import { collectSessions, verifyStore } from '../lib/verify.js'
+import { verifyStore } from '../lib/verify.js'
 import { restore } from '../lib/restore.js'
 import { formatTime, humanBytes, toIso } from '../lib/util.js'
 
@@ -40,15 +36,11 @@ commands
   compact    replace the manifest chain with one checkpoint
   gc         delete objects the chain no longer references (needs --yes)
   merge      combine two vaults into a new one (sources untouched)
-  carry      update the vault, verify it and copy it to a pendrive
-  land       verify a carried vault, merge it and make it the local one
   inventory  sessions grouped by the device they came from
-  lineage    which conversations were continued, and which copy is the newest
-  fuse       rewrite a continued conversation as one log (prefix + both tails)
-  install    put that log into the DSH sessions tree, keeping the previous one
-  rebaseline publish the local log as the session's new visible lineage
-  backup     an exact, verified copy of the vault (guard rail before a fusion)
+  paths      where every keeper file lives on this machine
   verify     check every object, hash and chain
+  inventory  sessions grouped by the device they came from
+  paths      where every keeper file lives on this machine, with local state
   status     what the store holds and what is unpublished
   restore    rebuild a DSH home from the store
 
@@ -81,16 +73,6 @@ restore options
   --force                  keep the existing log and write the incoming copy aside
 `
 
-/** A carried key file, if the pack copied one, so `land` needs no extra flag. */
-function findStickKey(dir) {
-  const keyDir = path.join(dir, 'key')
-  try {
-    const files = fs.readdirSync(keyDir).filter((name) => !name.startsWith('.'))
-    return files.length === 1 ? path.join(keyDir, files[0]) : null
-  } catch {
-    return null
-  }
-}
 function parse(argv) {
   const options = { _: [], session: [] }
   for (let i = 0; i < argv.length; i++) {
@@ -114,7 +96,6 @@ function parse(argv) {
     const value = inline ?? argv[++i]
     if (value === undefined) fail('missing value for --' + key)
     if (key === 'session') options.session.push(value)
-    else if (key === 'include') options.include = [...(options.include ?? []), value]
     else if (key === 'allow-rule') options['allow-rule'] = [...(options['allow-rule'] ?? []), value]
     else options[key] = value
   }
@@ -314,194 +295,6 @@ function main() {
     return
   }
 
-  if (command === 'install') {
-    const sessionId = options.session && options.session.length > 0 ? options.session[0] : null
-    if (!sessionId) fail('install needs --session <id>')
-    const file = options.file
-    if (!file) fail('install needs --file <log>')
-    if (!fs.existsSync(file)) fail('no such file: ' + file)
-    const buffer = fs.readFileSync(path.resolve(file))
-    const report = installLog({ buffer, home, sessionId, force: options.force === true })
-    const lines = [
-      'installed ' + report.sessionId,
-      '  log: ' + report.target + '  ' + humanBytes(report.bytes) + '  ' + report.events + ' event(s)',
-      report.superseded ? '  previous log kept at ' + report.superseded : '  there was no previous log',
-      '  close and reopen DSH to load it',
-    ]
-    print(report, options, lines.join('\n'))
-    return
-  }
-
-  if (command === 'rebaseline') {
-    const sessionId = options.session && options.session.length > 0 ? options.session[0] : null
-    if (!sessionId) fail('rebaseline needs --session <id>')
-    const store = openFrom(options)
-    const report = rebaseline(store, { home, sessionId, device })
-    const lines = [
-      'rebaseline of ' + report.sessionId,
-      '  published as the visible lineage: ' + report.chunks + ' chunk(s)  ' + humanBytes(report.bytes),
-      '  previous lineages archived: ' + report.archived,
-      '  verified: ' + (report.verified.ok ? 'ok' : 'PROBLEMS') + '  ' + report.verified.sessions + ' session(s)  ' + report.verified.archived + ' archived',
-    ]
-    if (!report.verified.ok) lines.push('  ! ' + report.verified.problems.join(', '))
-    print(report, options, lines.join('\n'))
-    if (!report.verified.ok) process.exit(1)
-    return
-  }
-
-  if (command === 'fuse') {
-    const sessionId = options.session && options.session.length > 0 ? options.session[0] : null
-    if (!sessionId) fail('fuse needs --session <id>')
-    const store = openFrom(options)
-    const { sessions, archived } = collectSessions(store)
-    const visible = sessions.get(sessionId)
-    const others = [...archived.values()].filter((entry) => entry.sessionId === sessionId)
-    if (!visible && others.length === 0) fail('no such session in the vault: ' + sessionId)
-
-    const lineages = []
-    if (visible) lineages.push({ buffer: visible.buffer, label: 'visible' })
-    others.forEach((entry, index) => lineages.push({ buffer: entry.buffer, label: 'archived-' + (index + 1) }))
-    // Lineages that live in another vault (or a log on disk) can join the fusion.
-    for (const extra of options.include ?? []) {
-      if (!fs.existsSync(extra)) fail('no such lineage file: ' + extra)
-      lineages.push({ buffer: fs.readFileSync(path.resolve(extra)), label: path.basename(extra) })
-    }
-    if (lineages.length < 2) {
-      print({ ok: true, fused: false }, options, 'nothing to fuse: ' + sessionId + ' has a single lineage')
-      return
-    }
-
-    const fused = fuseLineages({ sessionId, lineages })
-    const when = (value) => (value ? new Date(value).toISOString().slice(0, 16).replace('T', ' ') : '?')
-    const lines = [
-      'fusion of ' + sessionId,
-      '  lineages: ' + fused.stats.lineages + '   shared prefix: ' + fused.stats.prefixLines + ' line(s)  ' + humanBytes(fused.stats.prefixBytes) + ' (' + humanBytes(fused.stats.prefixBytesReused) + ' reused byte-for-byte)',
-    ]
-    for (const tail of fused.stats.tails) {
-      lines.push('  tail ' + tail.label.padEnd(10) + '  ' + String(tail.lines).padStart(5) + ' event(s)  ' + humanBytes(tail.bytes).padStart(10) + '  ends ' + when(tail.lastAt))
-    }
-    lines.push('  fused: ' + fused.stats.events + ' event(s)  ' + humanBytes(fused.stats.bytes) + '  first ' + when(fused.stats.firstEventAt) + '  last ' + when(fused.stats.lastEventAt))
-    lines.push('  the original lineages stay in the vault; this is a derived log')
-
-    const out = options.out
-    const dryRun = Boolean(options['dry-run'])
-    if (out && !dryRun) {
-      fs.mkdirSync(path.dirname(path.resolve(out)), { recursive: true })
-      fs.writeFileSync(path.resolve(out), fused.buffer)
-      lines.push('  written to ' + path.resolve(out))
-    } else if (dryRun) {
-      lines.push('  dry run: nothing written')
-    }
-    print({ ...fused.stats, out: out ? path.resolve(out) : null }, options, lines.join('\n'))
-    return
-  }
-
-  if (command === 'lineage') {
-    const store = openFrom(options)
-    const report = lineageReport(store)
-    const when = (value) => (value ? new Date(value).toISOString().slice(0, 16).replace('T', ' ') : '?')
-    const lines = ['lineage of ' + store.dir]
-    for (const row of report.sessions) {
-      const state = row.state === 'continued' ? 'CONTINUED' : row.state === 'orphan-archive' ? 'ORPHAN ARCHIVE' : 'linear'
-      lines.push('  ' + state.padEnd(15) + row.sessionId.slice(0, 24) + '…  ' + (row.cwd ?? ''))
-      if (row.visible) {
-        lines.push('      visible      ' + humanBytes(row.visible.bytes).padStart(10) + '  last ' + when(row.visible.lastEventAt) + (row.visibleIsNewest ? '  (newest)' : '  (NOT the newest)'))
-      }
-      for (const item of row.continuations) {
-        lines.push('      archived     ' + humanBytes(item.bytes).padStart(10) + '  last ' + when(item.lastEventAt))
-      }
-    }
-    lines.push('')
-    lines.push('  linear: ' + report.totals.linear + '   continued: ' + report.totals.continued + '   lineages: ' + report.totals.lineages + '   archived: ' + report.totals.archived)
-    print(report, options, lines.join('\n'))
-    return
-  }
-
-  if (command === 'backup') {
-    const to = options.to
-    if (!to) fail('backup needs --to <directory> for the copy')
-    const pass = readPassphraseFile(options['key-file'] ?? null)
-    if (!pass.passphrase) fail('backup needs the passphrase of the vault: ' + (pass.reason ?? 'pass --key-file'))
-    const store = openFrom(options)
-    const report = backupVault({ dir: store.dir, passphrase: pass.passphrase, to: path.resolve(to) })
-    const lines = [
-      'backup of ' + report.to,
-      '  files: ' + report.files + '  ' + humanBytes(report.bytes),
-      '  verified: ' + (report.verified.ok ? 'ok' : 'PROBLEMS') + '  ' + report.verified.sessions + ' session(s)  ' + report.verified.archived + ' archived  ' + report.verified.frames + ' frame(s)',
-      '  manifest: ' + report.manifestPath,
-      '  files sha256: ' + report.manifestSha256,
-    ]
-    if (!report.verified.ok) lines.push('  ! ' + report.verified.problems.join(', '))
-    print(report, options, lines.join('\n'))
-    if (!report.verified.ok) process.exit(1)
-    return
-  }
-
-  if (command === 'carry') {
-    const store = openFrom(options)
-    const to = options.to
-    if (!to) fail('carry needs --to <directory on the pendrive>')
-    const report = packVault({
-      store,
-      home,
-      to: path.resolve(to),
-      keyFile: options['key-file'] ?? null,
-      withKey: options['with-key'] ? path.resolve(options['with-key']) : null,
-      maxChunkBytes: options['max-chunk-bytes'] ? Number(options['max-chunk-bytes']) : undefined,
-    })
-    const lines = [
-      'carry  -> ' + path.resolve(to),
-      '  captured: ' + report.captured.sessions + ' session(s)  ' + report.captured.chunks + ' chunk(s)  ' + humanBytes(report.captured.bytes),
-      '  verified: ' + (report.verified.ok ? 'ok' : 'PROBLEMS') + '  ' + report.verified.sessions + ' session(s)  ' + report.verified.frames + ' frame(s)  ' + humanBytes(report.verified.bytes) + '  ' + report.verified.archived + ' archived',
-      '  vault copied to ' + path.join(path.resolve(to), 'vault'),
-      report.previousReplaced ? '  the previous copy on the stick was replaced' : '  first copy on the stick',
-      report.keyCarried
-        ? '  ! the passphrase was copied to the stick: it now holds the secret and the vault'
-        : '  passphrase not carried: the other machine must already know it' + (report.keyFingerprint ? ' (fingerprint ' + report.keyFingerprint + ')' : ''),
-    ]
-    print(report, options, lines.join('\n'))
-    if (!report.verified.ok) process.exit(1)
-    return
-  }
-
-  if (command === 'land') {
-    const from = options.from
-    if (!from) fail('land needs --from <directory on the pendrive created by keeper carry>')
-    const stickDir = path.join(path.resolve(from), 'vault')
-    const stickKey = options['stick-key'] ?? findStickKey(path.resolve(from))
-    if (!fs.existsSync(path.join(stickDir, 'meta.json'))) fail('no carried vault at ' + stickDir + ' (run keeper carry on the other machine first)')
-    if (!stickKey) fail('land needs --stick-key <passphrase file for the carried vault>')
-
-    const localStore = openFrom(options)
-    const stickPass = readPassphraseFile(stickKey)
-    if (!stickPass.passphrase) fail('cannot read the passphrase of the carried vault: ' + stickPass.reason)
-    const stickStore = openStore(stickDir, stickPass.passphrase)
-    const keyOut = options['key-out'] ? path.resolve(options['key-out']) : path.resolve(options['key-file'])
-
-    const report = landVault({
-      from: path.resolve(from),
-      localStore,
-      stickStore,
-      stickPassphrase: stickPass.passphrase,
-      keyOut,
-      keepReplaced: options['keep-replaced'] !== false,
-      onDivergence: options['on-divergence'] ?? 'owner',
-      maxChunkBytes: options['max-chunk-bytes'] ? Number(options['max-chunk-bytes']) : undefined,
-    })
-    const lines = [
-      'landed into ' + report.localStore,
-      '  carried vault verified: ' + report.stick.verified.sessions + ' session(s)  ' + report.stick.verified.frames + ' frame(s)  ' + humanBytes(report.stick.verified.bytes),
-      '  merged: ' + report.sessions + ' session(s)  ' + report.archived + ' archived  ' + humanBytes(report.merged.bytes) + '  ' + report.merged.frames + ' frame(s)',
-      '  dedupe: ' + humanBytes(report.dedupedBytes) + ' not stored twice',
-      '  previous vault kept at ' + (report.replaced ?? '(deleted)'),
-      '  passphrase file written: ' + report.keyOut,
-      '  close and reopen DSH so it uses the new vault',
-    ]
-    print(report, options, lines.join('\n'))
-    if (!report.merged.ok) process.exit(1)
-    return
-  }
-
   if (command === 'merge') {
     const sides = []
     for (const side of ['a', 'b']) {
@@ -592,6 +385,27 @@ function main() {
       }
     }
     print(report, options, lines.join('\n'))
+    return
+  }
+
+  if (command === 'paths') {
+    const layout = resolvePaths({ home, vault: options.store ?? null, key: options['key-file'] ?? null })
+    const exists = (value) => (fs.existsSync(value) ? '' : '  (does not exist yet)')
+    const lines = [
+      'keeper layout for this machine',
+      '  home        ' + layout.home,
+      '  vault       ' + layout.vault + exists(layout.vault) + (layout.usingLegacy ? '   <- legacy location' : ''),
+      '  key         ' + layout.key + exists(layout.key),
+      '  device      ' + layout.device + exists(layout.device),
+      '  origins     ' + layout.origins,
+      '  sessions    ' + layout.sessions,
+      '  attachments ' + layout.attachments,
+      '  replaced    ' + layout.replacedPrefix + '<timestamp>',
+      '  backups     ' + layout.backupPrefix + '<timestamp>',
+      '  stick       ' + layout.stick,
+    ]
+    if (layout.legacy) lines.push('', '  a vault from the previous layout exists at ' + layout.legacy + '; `keeper status` uses it until it is moved to the canonical path')
+    print(layout, options, lines.join('\n'))
     return
   }
 

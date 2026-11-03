@@ -640,3 +640,14 @@ sólo contaba sesiones idénticas y daba 253,7 KiB). `verify` de la bóveda unid
 Lo que C.2 **no** decide: si una divergencia se muestra como una conversación con la cola del otro
 equipo archivada o como dos conversaciones. Ambas opciones siguen abiertas porque el archivo
 conserva los bytes; eso es C.4.
+## 13. Retroceso del 2026-11-03 y dirección nueva
+
+Se retiró el ciclo de transporte de rc.24–rc.30 (`carry`/`land`/`fuse`/`install`/`rebaseline`) y se
+volvió al conjunto de funciones de rc.23. La causa y el detalle están en `LESSONS.md`: el log de
+sesión es una máquina de estados con historial de ediciones y **no se puede sintetizar**. El diseño
+vigente de transporte está en `TRANSPORT.md`: la bóveda viaja como carpeta, las sesiones se
+restauran byte-exactas, nada se recompone. La primera pieza nueva es `keeper paths`, que fija la
+disposición canónica de archivos para el plugin, la CLI y los scripts.
+
+Regla de trabajo desde ahora: **cada etapa se valida contra el criterio del proyecto** (resguardar,
+llevar y traer historial) y no por la cantidad de funciones agregadas.
