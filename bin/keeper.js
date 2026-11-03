@@ -18,6 +18,7 @@ import { initStore, listDeviceHeads, openStore, readAllManifests, readManifestCh
 import { collectGarbage, compact } from '../lib/compact.js'
 import { backupVault } from '../lib/backup.js'
 import { fuseLineages } from '../lib/fuse.js'
+import { installLog, rebaseline } from '../lib/install.js'
 import { inventory } from '../lib/inventory.js'
 import { lineageReport } from '../lib/lineage.js'
 import { landVault, packVault } from '../lib/carry.js'
@@ -44,11 +45,15 @@ commands
   inventory  sessions grouped by the device they came from
   lineage    which conversations were continued, and which copy is the newest
   fuse       rewrite a continued conversation as one log (prefix + both tails)
+  install    put that log into the DSH sessions tree, keeping the previous one
+  rebaseline publish the local log as the session's new visible lineage
   backup     an exact, verified copy of the vault (guard rail before a fusion)
   verify     check every object, hash and chain
   inventory  sessions grouped by the device they came from
   lineage    which conversations were continued, and which copy is the newest
   fuse       rewrite a continued conversation as one log (prefix + both tails)
+  install    put that log into the DSH sessions tree, keeping the previous one
+  rebaseline publish the local log as the session's new visible lineage
   backup     an exact, verified copy of the vault (guard rail before a fusion), with local state
   status     what the store holds and what is unpublished
   restore    rebuild a DSH home from the store
@@ -311,6 +316,41 @@ function main() {
       dryRun ? '  nothing was deleted' : '  deleted: ' + report.deleted,
     ]
     print(report, options, lines.join('\n'))
+    return
+  }
+
+  if (command === 'install') {
+    const sessionId = options.session && options.session.length > 0 ? options.session[0] : null
+    if (!sessionId) fail('install needs --session <id>')
+    const file = options.file
+    if (!file) fail('install needs --file <log>')
+    if (!fs.existsSync(file)) fail('no such file: ' + file)
+    const buffer = fs.readFileSync(path.resolve(file))
+    const report = installLog({ buffer, home, sessionId, force: options.force === true })
+    const lines = [
+      'installed ' + report.sessionId,
+      '  log: ' + report.target + '  ' + humanBytes(report.bytes) + '  ' + report.events + ' event(s)',
+      report.superseded ? '  previous log kept at ' + report.superseded : '  there was no previous log',
+      '  close and reopen DSH to load it',
+    ]
+    print(report, options, lines.join('\n'))
+    return
+  }
+
+  if (command === 'rebaseline') {
+    const sessionId = options.session && options.session.length > 0 ? options.session[0] : null
+    if (!sessionId) fail('rebaseline needs --session <id>')
+    const store = openFrom(options)
+    const report = rebaseline(store, { home, sessionId, device })
+    const lines = [
+      'rebaseline of ' + report.sessionId,
+      '  published as the visible lineage: ' + report.chunks + ' chunk(s)  ' + humanBytes(report.bytes),
+      '  previous lineages archived: ' + report.archived,
+      '  verified: ' + (report.verified.ok ? 'ok' : 'PROBLEMS') + '  ' + report.verified.sessions + ' session(s)  ' + report.verified.archived + ' archived',
+    ]
+    if (!report.verified.ok) lines.push('  ! ' + report.verified.problems.join(', '))
+    print(report, options, lines.join('\n'))
+    if (!report.verified.ok) process.exit(1)
     return
   }
 

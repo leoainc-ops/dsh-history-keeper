@@ -13,6 +13,29 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.26 — 2026-11-02
+
+### Fixed
+
+- **A stale manifest could override the current one.** The chain is walked newest first, and the
+  per-`(session, seq)` dedupe kept the *last* descriptor seen — the oldest. A rebaseline, a
+  checkpoint or a merge could therefore resurrect an old lineage over the new one. The newest
+  descriptor now wins.
+- **Concurrent writers can no longer orphan a manifest silently**: `writeManifest` accepts the head
+  a payload was prepared against and refuses (`HEAD_MOVED`) when it has moved. `snapshot` passes it.
+  A two-process test snapshots the same store simultaneously for six rounds and the chain verifies.
+- **A stale lock is only broken when its owner is gone.** Age alone let a live writer's lock be
+  stolen, which is how two writers end up on one head.
+- `carry` now snapshots with this machine's device identity, like the plugin, instead of writing
+  through the legacy pointer.
+
+### Added
+
+- **`keeper install`**: puts a (fused) log into `~/.dsh/sessions`, keeping the previous one as
+  `.superseded-<ts>`, and refuses a log whose events this host cannot read.
+- **`keeper rebaseline`**: publishes that log as the session's visible lineage and moves the
+  previous lineages to the archive, taken verbatim from the chain. Without it the new log would be
+  seen as divergent and never backed up.
 ## 0.1.0-rc.25 — 2026-11-02
 
 ### Added
