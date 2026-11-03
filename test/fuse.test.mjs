@@ -12,11 +12,11 @@ function log(shared, tail) {
   return makeLog({
     id: ID,
     cwd: 'C:\\work\\fuse',
-    batches: [...shared, [tail]],
+    batches: [...shared, [{ type: 'turn/start', time: (tail.time ?? 3000) - 100 }], [tail], [{ type: 'turn/end', time: tail.time ?? 3000 }]],
   })
 }
 
-const SHARED = [[{ type: 'turn/start', time: 1000 }], [{ type: 'turn/end', time: 2000 }]]
+const SHARED = [[{ type: 'turn/start', time: 1000 }], [{ type: 'content', time: 1500 }], [{ type: 'turn/end', time: 2000 }]]
 
 test('blocksOf splits a log into frames that decompress to the same text', () => {
   const buffer = log(SHARED, { type: 'tail/a', time: 3000 })
@@ -40,13 +40,13 @@ test('fusion keeps the shared prefix, appends both tails and renumbers seq', () 
   assert.equal(docs[0].id, ID)
 
   const types = docs.slice(1).map((doc) => (doc.type === 'batch' ? doc.rows.map((row) => row.type).join('+') : doc.type))
-  assert.deepEqual(types, ['turn/start', 'turn/end', 'tail/a', 'tail/b'], 'the tail that ends first goes first')
+  assert.deepEqual(types, ['turn/start', 'content', 'turn/end', 'turn/start', 'tail/a', 'turn/end', 'turn/start', 'tail/b', 'turn/end'], 'complete turns only, oldest-ending tail first')
 
   const seqs = docs.slice(1).map((doc) => (doc.type === 'batch' ? doc.rows[doc.rows.length - 1].seq : doc.seq))
-  assert.deepEqual(seqs, [1, 2, 3, 4], 'the prefix keeps its seq; the tails continue after it')
+  assert.deepEqual(seqs, [1, 2, 3, 4, 5, 6, 7, 8, 9], 'the prefix keeps its seq; the tails continue after it')
 
-  assert.equal(fused.stats.prefixLines, 3, 'header + two shared events')
-  assert.equal(fused.stats.events, 4)
+  assert.equal(fused.stats.prefixFrames, 4, 'header + three shared events (through turn/end)')
+  assert.equal(fused.stats.events, 9)
   assert.equal(fused.stats.lastEventAt, 4000)
 })
 

@@ -13,6 +13,18 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.29 — 2026-11-02
+
+### Fixed
+
+- **A fused log could not be opened**: the host enforces a turn/step state machine, and a raw
+  frame splice produced `turn/start does not open the expected turn`. Fusion now cuts at turn
+  boundaries (the prefix keeps its last complete turn; each tail keeps only whole turns, dropping
+  the partial turn at each seam) and **renumbers `data.turn` in the tails**, which both branches
+  numbered from the same prefix. `seq` is renumbered as before. The fused log is validated against
+  the host's own rules — `turn/start` must carry the next turn, `turn/end` must match the open one,
+  and nothing may be left open at the end — before it is written.
+- `install` now reports the event count of the installed log.
 ## 0.1.0-rc.28 — 2026-11-02
 
 ### Fixed
