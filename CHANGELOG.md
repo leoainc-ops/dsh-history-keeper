@@ -13,6 +13,14 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.30 — 2026-11-02
+
+### Fixed
+
+- `rebaseline` no longer refuses a fused log that is *smaller in bytes* than the published lineage.
+  Two similar tails compress better together than apart, so byte size is not a measure of history;
+  the guard was removed (the previous lineage is archived regardless, with its original
+  descriptors).
 ## 0.1.0-rc.29 — 2026-11-02
 
 ### Fixed
