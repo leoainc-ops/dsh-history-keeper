@@ -13,6 +13,24 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.28 — 2026-11-02
+
+### Fixed
+
+- **A rebaseline could not replace a lineage with a different chunk layout.** A log re-chunked in
+  one pass (2 chunks) does not line up with a lineage published in small deltas (91 chunks), and the
+  old descriptors would have mixed into the new lineage. Manifests now carry `reset`, which tells
+  the reader that the session was recomputed: whatever an older manifest contributed to it is
+  dropped. `rebaseline` refuses a log shorter than the published lineage (bytes, not chunk counts)
+  and keeps the previous lineage as an archive entry with its original descriptors.
+- The help text listed `inventory`, `lineage`, `fuse` and `backup` twice.
+
+### Verified
+
+A full rehearsal on a copy of the real vault: `install` wrote the 1357-event fused log and kept the
+previous one as `.superseded-<ts>`; `rebaseline` published it as the visible lineage (2 chunks,
+1.7 MiB), archived the previous one, and the vault verified with the visible buffer byte-identical
+to the fused log.
 ## 0.1.0-rc.27 — 2026-11-02
 
 ### Added

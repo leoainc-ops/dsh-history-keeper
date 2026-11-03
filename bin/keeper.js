@@ -49,12 +49,6 @@ commands
   rebaseline publish the local log as the session's new visible lineage
   backup     an exact, verified copy of the vault (guard rail before a fusion)
   verify     check every object, hash and chain
-  inventory  sessions grouped by the device they came from
-  lineage    which conversations were continued, and which copy is the newest
-  fuse       rewrite a continued conversation as one log (prefix + both tails)
-  install    put that log into the DSH sessions tree, keeping the previous one
-  rebaseline publish the local log as the session's new visible lineage
-  backup     an exact, verified copy of the vault (guard rail before a fusion), with local state
   status     what the store holds and what is unpublished
   restore    rebuild a DSH home from the store
 
