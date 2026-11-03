@@ -129,7 +129,13 @@ function passphraseFrom(options, behaviour = {}) {
   if (fromEnv && fromEnv.length >= 8) return { passphrase: fromEnv, source: 'env ' + name, generated: null }
   if (fromEnv) fail('the passphrase in $' + name + ' is shorter than 8 characters')
 
-  const keyFile = path.resolve(options['key-file'] ?? resolvePaths({ home: options.home ?? defaultHome() }).key)
+  // The key must be resolved for the SAME vault the command opens: otherwise a command given an
+  // explicit --store would borrow this machine's key, open the wrong store and report a confusing
+  // "wrong passphrase" instead of "passphrase not set".
+  const keyFile = path.resolve(
+    options['key-file'] ??
+      resolvePaths({ home: options.home ?? defaultHome(), vault: options.store ?? null }).key,
+  )
   const file = readPassphraseFile(keyFile)
   if (file.passphrase) return { passphrase: file.passphrase, source: 'key file ' + keyFile, generated: null }
   if (file.reason && !/cannot read/u.test(file.reason)) fail(file.reason + ': ' + keyFile)

@@ -13,6 +13,20 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.33 — 2026-11-03
+
+### Fixed
+
+- **The key must be resolved for the same vault the command opens.** With the new defaults, a
+  command given an explicit `--store` also resolved the *default* vault to build the key path, so it
+  could borrow this machine's key, open the foreign store with it and report `wrong passphrase`
+  instead of `passphrase not set`. It now resolves the key for the store it is about to open; only
+  the previous-layout vault keeps the previous-layout key.
+
+### Note
+
+rc.32 is deprecated: it shipped with this regression (the CLI test that asserts the exit code for a
+missing passphrase failed).
 ## 0.1.0-rc.32 — 2026-11-03
 
 ### Added
