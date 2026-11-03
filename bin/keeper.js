@@ -120,6 +120,7 @@ function parse(argv) {
     const value = inline ?? argv[++i]
     if (value === undefined) fail('missing value for --' + key)
     if (key === 'session') options.session.push(value)
+    else if (key === 'include') options.include = [...(options.include ?? []), value]
     else if (key === 'allow-rule') options['allow-rule'] = [...(options['allow-rule'] ?? []), value]
     else options[key] = value
   }
@@ -366,6 +367,11 @@ function main() {
     const lineages = []
     if (visible) lineages.push({ buffer: visible.buffer, label: 'visible' })
     others.forEach((entry, index) => lineages.push({ buffer: entry.buffer, label: 'archived-' + (index + 1) }))
+    // Lineages that live in another vault (or a log on disk) can join the fusion.
+    for (const extra of options.include ?? []) {
+      if (!fs.existsSync(extra)) fail('no such lineage file: ' + extra)
+      lineages.push({ buffer: fs.readFileSync(path.resolve(extra)), label: path.basename(extra) })
+    }
     if (lineages.length < 2) {
       print({ ok: true, fused: false }, options, 'nothing to fuse: ' + sessionId + ' has a single lineage')
       return
