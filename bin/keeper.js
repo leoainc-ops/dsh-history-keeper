@@ -39,7 +39,6 @@ commands
   inventory  sessions grouped by the device they came from
   paths      where every keeper file lives on this machine
   verify     check every object, hash and chain
-  inventory  sessions grouped by the device they came from
   paths      where every keeper file lives on this machine, with local state
   status     what the store holds and what is unpublished
   restore    rebuild a DSH home from the store
