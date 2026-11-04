@@ -13,6 +13,22 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.35 — 2026-11-03
+
+### Added
+
+- **The prepare step of `import` reports what this host can read.** Before anything live is
+  touched, each session of the merged vault is checked against this host's event vocabulary and the
+  report says how many are readable and which ones are not, with the events that are missing. The
+  operator learns "this needs a newer DSH" *before* swapping, not when opening a conversation.
+- **A carried vault written in an unknown format is refused with an actionable message**: `import`
+  names the format, the one this keeper speaks, and the first step (update the plugin), instead of
+  failing later with a raw store error.
+
+### Verified
+
+Three tests: unknown format refused, a session with an unknown event reported as unreadable (and
+not silently accepted), and a vault with no unknown events reported as fully readable.
 ## 0.1.0-rc.34 — 2026-11-03
 
 ### Added

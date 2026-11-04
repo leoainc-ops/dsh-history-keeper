@@ -91,7 +91,7 @@ function parse(argv) {
       inline = key.slice(eq + 1)
       key = key.slice(0, eq)
     }
-    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight') {
+    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight' || key === 'swap') {
       options[key] = true
       continue
     }
@@ -449,7 +449,15 @@ function main() {
     const localStore = openStore(layout.vault, localPass.passphrase)
     const stickPass = readPassphraseFile(stickKey)
     if (!stickPass.passphrase) fail('cannot read the passphrase of the carried vault: ' + stickPass.reason)
-    const stickStore = openStore(stickDir, stickPass.passphrase)
+    let stickStore
+    try {
+      stickStore = openStore(stickDir, stickPass.passphrase)
+    } catch (error) {
+      if (error.code === 'BAD_FORMAT') {
+        fail('the carried vault uses a format this keeper does not know (' + error.message + '); update the plugin on this machine')
+      }
+      throw error
+    }
 
     const report = importVault({
       stickStore,
@@ -466,6 +474,7 @@ function main() {
       '  carried vault: verified  ' + report.stick.totals.sessions + ' session(s)  ' + report.stick.totals.frames + ' frame(s)  ' + humanBytes(report.stick.totals.bytes),
       '  merged: ' + report.merge.sessions + ' session(s)  ' + report.merge.archived + ' archived  ' + report.merge.verification.frames + ' frame(s)  ' + humanBytes(report.merge.verification.bytes),
       '  dedupe: ' + humanBytes(report.merge.dedupedBytes) + ' not stored twice',
+      '  this host can read ' + report.preflight.readable + ' of them' + (report.preflight.unreadable.length > 0 ? ', not ' + report.preflight.unreadable.length + ' (they need a newer DSH)' : ''),
     ]
     if (report.swapped) {
       lines.push('  previous vault: ' + report.replaced)
