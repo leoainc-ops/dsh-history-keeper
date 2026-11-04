@@ -1,6 +1,6 @@
 {
   "name": "dsh-history-keeper",
-  "version": "0.1.0-rc.35",
+  "version": "0.1.0-rc.36",
   "description": "Encrypted, verifiable history keeper for DeepSeek Harness: snapshot, verify and restore your sessions. No git, no external binaries.",
   "type": "module",
   "main": "lib/index.js",
@@ -58,7 +58,8 @@
   "homepage": "https://github.com/leoainc-ops/dsh-history-keeper#readme",
   "scripts": {
     "test": "node --test \"test/*.test.mjs\"",
-    "guard": "node scripts/guard-no-sessions.mjs"
+    "guard": "node scripts/guard-no-sessions.mjs",
+    "conformance": "node conformance/run.mjs"
   },
   "publishConfig": {
     "access": "public"

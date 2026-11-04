@@ -651,3 +651,14 @@ disposición canónica de archivos para el plugin, la CLI y los scripts.
 
 Regla de trabajo desde ahora: **cada etapa se valida contra el criterio del proyecto** (resguardar,
 llevar y traer historial) y no por la cantidad de funciones agregadas.
+## 14. Contrato y filosofías (2026-11-03)
+
+El formato de bóveda quedó escrito como contrato en `docs/SPEC-vault.md`, con una bóveda de
+referencia y cinco verificaciones en `conformance/` (`npm run conformance`, también en CI). Sobre ese
+contrato se apoyan las **filosofías** (`docs/PHILOSOPHIES.md`): una filosofía es una política que
+elige entre linajes y decide cuándo se transporta; **no cambia el formato**. La de v1.0 es la
+conservadora, registrada en `docs/adr/0001-filosofia-conservadora.md`.
+
+Consecuencia práctica: una segunda filosofía **no necesita un fork**; necesita un paquete que pase la
+conformidad. Un fork sólo se justifica si cambia el contrato (sintetizar logs, reescribir ids), y en
+ese caso su bóveda ya no es esta bóveda.

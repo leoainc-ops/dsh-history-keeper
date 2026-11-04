@@ -1,0 +1,10 @@
+{
+  "deviceId": "cccccccccccccccccccccccccccccccc",
+  "deviceName": "conformance",
+  "head": {
+    "id": "0591b034a33ad75ccbe8e6c35e2b1482",
+    "cipherSha256": "970940b41318e9fcfcfc610e2d25860af17cb40cfa222df76e55038a0d0adaa7"
+  },
+  "seq": 1,
+  "updatedAt": "2026-11-04T01:10:14.067Z"
+}

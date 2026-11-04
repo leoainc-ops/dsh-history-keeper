@@ -1,0 +1,25 @@
+{
+  "format": "dsh-history-keeper/store/1",
+  "storeId": "2733641f856994783800057e0bb2fa20",
+  "createdAt": "2026-11-04T01:10:13.047Z",
+  "aead": "aes-256-gcm",
+  "kdf": {
+    "alg": "scrypt",
+    "N": 32768,
+    "r": 8,
+    "p": 1,
+    "keyLen": 32,
+    "salt": "T9nTMpjXcg+W8keTTaJxxQ=="
+  },
+  "keyCheck": {
+    "nonce": "JBjJ4dEGW2DEDAea",
+    "ciphertext": "REtPMSQYyeHRBltgxAwHmmtWDZlhGw27gsM/SxOZDP00g8Z8yr+mE3z09EU1M0dXU+LZroAEpPfPKE57SeHk"
+  },
+  "deviceId": "80406c808fbddac04b76819c07f6eb78",
+  "deviceName": "conformance",
+  "manifest": {
+    "id": "0591b034a33ad75ccbe8e6c35e2b1482",
+    "cipherSha256": "970940b41318e9fcfcfc610e2d25860af17cb40cfa222df76e55038a0d0adaa7"
+  },
+  "snapshots": 1
+}

@@ -1,0 +1,19 @@
+{
+  "format": "dsh-history-keeper/store/1",
+  "passphrase": "conformance-test-passphrase",
+  "storeId": "2733641f856994783800057e0bb2fa20",
+  "sessions": [
+    {
+      "sessionId": "session-conformance-alpha",
+      "cwd": "C:\\work\\conformance",
+      "bytes": 368,
+      "sha256": "e1468b05c0610892dbeb7136422829425ecf19c8399bb416bd4392baeb083a4a"
+    },
+    {
+      "sessionId": "session-conformance-beta",
+      "cwd": "C:\\work\\conformance",
+      "bytes": 231,
+      "sha256": "908d723679d5fd774f295b7b89a0c1fd894065668ee520dde6124ac7847f8eb7"
+    }
+  ]
+}

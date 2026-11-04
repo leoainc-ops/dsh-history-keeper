@@ -171,3 +171,12 @@ of this project as of 2026-10-24. Full timeline, fork status and contribution te
 [`LICENSING-HISTORY.md`](LICENSING-HISTORY.md).
 
 ---
+
+## The contract
+
+The vault format is specified in [`docs/SPEC-vault.md`](docs/SPEC-vault.md) and enforced by
+`npm run conformance` against a committed reference vault: any implementation —a policy package, a
+fork, a rewrite— that passes it can read the same vault. What may differ between products is the
+*philosophy* ([`docs/PHILOSOPHIES.md`](docs/PHILOSOPHIES.md)): which lineage is visible, when the
+vault travels, what is retained. The one this version ships is the conservative philosophy
+([`docs/adr/0001-filosofia-conservadora.md`](docs/adr/0001-filosofia-conservadora.md)).

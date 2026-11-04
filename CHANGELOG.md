@@ -13,6 +13,26 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.36 — 2026-11-03
+
+### Added
+
+- **`docs/SPEC-vault.md`**: the vault format written as a contract — layout, crypto, chunks,
+  manifests, head union, verification rules, error codes, compatibility rules, and what is
+  deliberately outside the contract.
+- **`conformance/`**: a committed reference vault plus five checks any implementation must pass
+  (opens, verifies, restores byte for byte, detects an altered object, refuses a wrong passphrase).
+  `npm run conformance`, also run in CI on ubuntu and windows.
+- **`docs/PHILOSOPHIES.md`**: the catalogue of philosophies and the line that separates a policy
+  (same vault, same repo) from a fork (different contract). The v1.0 one is conservative.
+- **`docs/adr/0001-filosofia-conservadora.md`**: the decision, its motives, its consequences and the
+  alternatives rejected, dated.
+
+### Changed
+
+- CI now runs on `ubuntu-latest` and `windows-latest`, and runs the conformance suite after the unit
+  tests and the session-data guard.
+- README points at the contract, the philosophies and the ADR.
 ## 0.1.0-rc.35 — 2026-11-03
 
 ### Added
