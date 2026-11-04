@@ -13,6 +13,25 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.34 — 2026-11-03
+
+### Added
+
+- **`keeper import`**: the receiving half of the transport.
+  - default: verifies the carried vault (`F:\keeper-transfer\vault`), merges it with the local one
+    into a new directory and verifies the result. **Nothing live is touched**, so it is safe to run
+    at any time; it prints the next step.
+  - `--swap`: makes the merged vault the local one (the previous one kept as `.replaced-<ts>`, and
+    put back automatically if the swapped vault fails verification) and restores its sessions into
+    the DSH home byte-exact, reporting what was created, identical, refused and unreadable.
+  - `--stick-key` (or a single file in `<stick>/key/`) supplies the carried vault's passphrase; the
+    merged vault is sealed with the **local** passphrase, so the plugin keeps working.
+- The merge in `import` uses the owner rule and reports the dedupe it achieved.
+
+### Verified
+
+On the real pair: carried vault 11 sessions / 8 461 frames / 12.3 MiB verified; merged 11 sessions,
+1 archived, **7.9 MiB not stored twice**, prepared without touching the live vault.
 ## 0.1.0-rc.33 — 2026-11-03
 
 ### Fixed

@@ -18,6 +18,7 @@ import { initStore, listDeviceHeads, openStore, readAllManifests, readManifestCh
 import { collectGarbage, compact } from '../lib/compact.js'
 import { inventory } from '../lib/inventory.js'
 import { exportVault } from '../lib/export.js'
+import { importVault } from '../lib/import.js'
 import { resolvePaths } from '../lib/paths.js'
 import { mergeStores } from '../lib/merge.js'
 import { resolveDevice } from '../lib/device.js'
@@ -40,6 +41,7 @@ commands
   inventory  sessions grouped by the device they came from
   paths      where every keeper file lives on this machine
   export     verify the vault and copy it to a pendrive, with a receipt
+  import     verify a carried vault, merge it, and (with --swap) make it the local one
   verify     check every object, hash and chain
   status     what the store holds and what is unpublished
   restore    rebuild a DSH home from the store
@@ -420,6 +422,65 @@ function main() {
     ]
     if (layout.legacy) lines.push('', '  a vault from the previous layout exists at ' + layout.legacy + '; `keeper status` uses it until it is moved to the canonical path')
     print(layout, options, lines.join('\n'))
+    return
+  }
+
+  if (command === 'import') {
+    const from = options.from
+    if (!from) fail('import needs --from <directory on the pendrive created by keeper export>')
+    const stickRoot = path.resolve(from)
+    const stickDir = path.join(stickRoot, 'vault')
+    if (!fs.existsSync(path.join(stickDir, 'meta.json'))) {
+      fail('no carried vault at ' + stickDir + ' (run keeper export on the other machine first)')
+    }
+
+    let stickKey = options['stick-key'] ?? null
+    if (!stickKey) {
+      const keyDir = path.join(stickRoot, 'key')
+      if (fs.existsSync(keyDir)) {
+        const files = fs.readdirSync(keyDir).filter((name) => !name.startsWith('.'))
+        if (files.length === 1) stickKey = path.join(keyDir, files[0])
+      }
+    }
+    if (!stickKey) fail('import needs --stick-key <passphrase file for the carried vault>')
+
+    const localPass = passphraseFrom(options)
+    const layout = resolvePaths({ home, vault: options.store ?? null, key: options['key-file'] ?? null })
+    const localStore = openStore(layout.vault, localPass.passphrase)
+    const stickPass = readPassphraseFile(stickKey)
+    if (!stickPass.passphrase) fail('cannot read the passphrase of the carried vault: ' + stickPass.reason)
+    const stickStore = openStore(stickDir, stickPass.passphrase)
+
+    const report = importVault({
+      stickStore,
+      localStore,
+      localPassphrase: localPass.passphrase,
+      stickPassphrase: stickPass.passphrase,
+      home,
+      swap: options.swap === true,
+      onDivergence: options['on-divergence'] ?? 'owner',
+    })
+
+    const lines = [
+      'import from ' + stickDir + (report.swapped ? '  (swapped into place)' : '  (prepared, nothing live was touched)'),
+      '  carried vault: verified  ' + report.stick.totals.sessions + ' session(s)  ' + report.stick.totals.frames + ' frame(s)  ' + humanBytes(report.stick.totals.bytes),
+      '  merged: ' + report.merge.sessions + ' session(s)  ' + report.merge.archived + ' archived  ' + report.merge.verification.frames + ' frame(s)  ' + humanBytes(report.merge.verification.bytes),
+      '  dedupe: ' + humanBytes(report.merge.dedupedBytes) + ' not stored twice',
+    ]
+    if (report.swapped) {
+      lines.push('  previous vault: ' + report.replaced)
+      if (report.restored) {
+        lines.push('  restore into ' + report.restored.home)
+        lines.push('    created: ' + report.restored.created.length + '   identical: ' + report.restored.identical.length + '   refused: ' + report.restored.refused.length + '   unreadable: ' + report.restored.incompatible.length)
+        for (const item of report.restored.created) lines.push('    + ' + item.sessionId + '  ' + humanBytes(item.bytes))
+        for (const item of report.restored.refused) lines.push('    ! ' + item.sessionId + '  ' + item.reason)
+        for (const item of report.restored.incompatible) lines.push('    x ' + item.sessionId + '  skipped: this host does not know ' + item.unknownEvents.join(', '))
+        lines.push('  reopen DSH to see them')
+      }
+    } else {
+      lines.push('  next: run this again with --swap, with DSH closed, to make it the local vault')
+    }
+    print(report, options, lines.join('\n'))
     return
   }
 
