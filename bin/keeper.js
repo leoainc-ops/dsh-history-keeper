@@ -12,9 +12,10 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
+import { fileURLToPath } from 'node:url'
 
 import { generatePassphraseFile, readPassphraseFile } from '../lib/config.js'
-import { initStore, listDeviceHeads, openStore, readAllManifests, readManifestChain } from '../lib/store.js'
+import { STORE_FORMAT, initStore, listDeviceHeads, openStore, readAllManifests, readManifestChain } from '../lib/store.js'
 import { collectGarbage, compact } from '../lib/compact.js'
 import { inventory } from '../lib/inventory.js'
 import { exportVault } from '../lib/export.js'
@@ -45,6 +46,7 @@ commands
   verify     check every object, hash and chain
   status     what the store holds and what is unpublished
   restore    rebuild a DSH home from the store
+  capabilities  what this CLI can do (version, format, commands)
 
 common options
   --store <dir>            store directory (required)
@@ -425,6 +427,20 @@ function main() {
     return
   }
 
+  if (command === 'capabilities') {
+    // What this CLI can do, so a script does not have to parse a version number and guess.
+    const report = {
+      version: pluginVersionOfCli(),
+      format: STORE_FORMAT,
+      commands: [
+        'init', 'snapshot', 'attachments', 'compact', 'gc', 'merge', 'paths',
+        'export', 'import', 'verify', 'status', 'restore',
+      ],
+    }
+    print(report, options, JSON.stringify(report, null, 2))
+    return
+  }
+
   if (command === 'import') {
     const from = options.from
     if (!from) fail('import needs --from <directory on the pendrive created by keeper export>')
@@ -609,4 +625,14 @@ try {
 } catch (error) {
   console.error('keeper: ' + (error && error.message ? error.message : String(error)))
   process.exit(1)
+}
+
+/** The version of the CLI doing the work, from the package that ships it. */
+function pluginVersionOfCli() {
+  try {
+    const here = path.dirname(fileURLToPath(import.meta.url))
+    return JSON.parse(fs.readFileSync(path.join(here, '..', 'package.json'), 'utf8')).version
+  } catch {
+    return null
+  }
 }

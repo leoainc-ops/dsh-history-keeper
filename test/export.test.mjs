@@ -2,8 +2,9 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import test from 'node:test'
+import { spawnSync } from 'node:child_process'
 
-import { exportVault } from '../lib/export.js'
+import { checkSpace, exportVault } from '../lib/export.js'
 import { snapshot } from '../lib/snapshot.js'
 import { initStore, openStore } from '../lib/store.js'
 import { makeLog, removeDir, tempDir, writeSession } from './helpers.js'
@@ -71,4 +72,20 @@ test('export refuses a vault that does not verify', (t) => {
   const to = path.join(root, 'stick')
   assert.throws(() => exportVault({ store, passphrase: PASS, to }), /does not verify/)
   assert.equal(fs.existsSync(path.join(to, 'vault')), false, 'nothing was copied')
+})
+
+test('checkSpace demands a margin over the copy size', () => {
+  assert.equal(checkSpace({ freeBytes: 1000, needBytes: 1000 }).ok, false, '105% of 1000 does not fit in 1000')
+  assert.equal(checkSpace({ freeBytes: 2000, needBytes: 1000 }).ok, true)
+  assert.equal(checkSpace({ freeBytes: 1000, needBytes: 1000, margin: 1 }).ok, true)
+})
+
+test('capabilities reports version, format and commands', () => {
+  const cli = new URL('../bin/keeper.js', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
+  const result = spawnSync(process.execPath, [cli, 'capabilities', '--json'], { encoding: 'utf8' })
+  assert.equal(result.status, 0, result.stderr)
+  const caps = JSON.parse(result.stdout)
+  assert.match(caps.version, /^\d+\.\d+\.\d+/)
+  assert.equal(caps.format, 'dsh-history-keeper/store/1')
+  for (const command of ['export', 'import', 'verify', 'restore', 'paths']) assert.ok(caps.commands.includes(command), command)
 })

@@ -13,6 +13,30 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## 0.1.0-rc.37 — 2026-11-04
+
+### Added
+
+- **`keeper capabilities --json`**: version, vault format and supported commands. A script asks what
+  the installation can do instead of guessing from a version number.
+- **Free-space check in `export`**: refuses to copy when the pendrive cannot hold the vault, with
+  the numbers in the message (`checkSpace` is a pure function and is tested without a full disk).
+- **`scripts/enviar.ps1` and `scripts/recibir.ps1`**: the transport as one line per side. They
+  derive every path from `keeper paths`, find the pendrive by content (not by drive letter), check
+  the CLI's capabilities, refuse to write with DSH open, verify the carried vault with its
+  passphrase before touching anything, and report created / identical / refused / unreadable. Both
+  run with `-Simulate` against temporary paths.
+
+### Fixed
+
+- The receive script assigned to `$home`, a read-only automatic variable in PowerShell, so the
+  restore would have gone to the wrong directory. Renamed to `$dshHome`. Found by the simulation
+  test, which is exactly what it is for.
+
+### Verified
+
+Six script tests on copies: send, receive, idempotence (second run reports identical), refusal with
+DSH open, wrong passphrase, missing pendrive. Plus 127/127 unit tests.
 ## 0.1.0-rc.36 — 2026-11-03
 
 ### Added

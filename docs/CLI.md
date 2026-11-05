@@ -232,3 +232,12 @@ The plugin exposes the same engine through a conversation command:
 
 `restore` is **not** available inside the host on purpose: it writes the live session store
 and a running DSH would not notice. The refusal message prints the exact CLI line to run.
+
+## Capabilities
+
+```sh
+keeper capabilities --json
+```
+
+Prints the CLI version, the vault format it speaks and the commands it supports, so a script can
+check what this installation can do instead of parsing a version number.

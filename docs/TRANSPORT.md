@@ -80,3 +80,22 @@ con DSH abierto.
 5. Prueba de aceptación: **A trabaja → pendrive → B abre DSH y ve la conversación con su contenido;
    sigue trabajando → vuelve a A y la ve actualizada, sin escribir comandos** (una vez por sentido,
    con el host cerrado donde haga falta).
+
+## 6. Los dos scripts (E5)
+
+Enviar y recibir son una línea por lado. Los scripts viven en `scripts/` y se copian al pendrive para
+tenerlos en la otra máquina:
+
+```powershell
+# máquina que envía (puede estar con DSH abierto: sólo lee)
+.\scripts\enviar.ps1
+
+# máquina que recibe (DSH cerrado)
+.\scripts\recibir.ps1
+```
+
+Ambos derivan todas las rutas de `keeper paths`, detectan el pendrive **por contenido** (no por letra),
+comprueban que el CLI tenga el comando (`keeper capabilities`) y se niegan a escribir si DSH está
+abierto. `recibir.ps1` verifica la bóveda del pendrive con su frase **antes** de tocar nada, e informa
+creadas / idénticas / rechazadas / ilegibles. Corren con `-Simulate` contra rutas temporales para
+probarse sin tocar el pendrive real.
