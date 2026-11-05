@@ -13,6 +13,13 @@ usable but the host APIs it binds to are still moving.
   and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
   passphrase file are needed.
 
+## Unreleased
+
+### Documentation
+
+- docs/CASES.md: the 26 situations the plugin covers, by role (backup, transport, convergence,
+  recovery), with the 18 covered, the 5 conditional and the 3 gaps, and where the gaps concentrate.
+
 ## 0.1.0-rc.37 — 2026-11-04
 
 ### Added

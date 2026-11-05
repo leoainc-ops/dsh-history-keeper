@@ -180,3 +180,6 @@ fork, a rewrite— that passes it can read the same vault. What may differ betwe
 *philosophy* ([`docs/PHILOSOPHIES.md`](docs/PHILOSOPHIES.md)): which lineage is visible, when the
 vault travels, what is retained. The one this version ships is the conservative philosophy
 ([`docs/adr/0001-filosofia-conservadora.md`](docs/adr/0001-filosofia-conservadora.md)).
+## What it covers
+
+The situations the plugin covers today, by role and with the gaps named: [docs/CASES.md](docs/CASES.md).
