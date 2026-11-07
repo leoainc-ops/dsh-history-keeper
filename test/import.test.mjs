@@ -12,6 +12,7 @@ import { makeLog, removeDir, tempDir, writeSession } from './helpers.js'
 
 const LOCAL = 'local-passphrase-1234'
 const REMOTE = 'remote-passphrase-1234'
+const DEVICE = { deviceId: 'aa'.repeat(16), deviceName: 'pc-local' }
 
 function build(t) {
   const root = tempDir('keeper-import-')
@@ -23,7 +24,7 @@ function build(t) {
   initStore(localDir, { passphrase: LOCAL, deviceName: 'pc-local' })
   const localStore = openStore(localDir, LOCAL)
   writeSession(home, { id: 'shared', log: makeLog({ id: 'shared', batches: [[{ type: 'turn/start' }], [{ type: 'turn/end' }]] }) })
-  snapshot(localStore, { home, now: '2026-11-03T10:00:00.000Z', device: { deviceId: 'aa'.repeat(16), deviceName: 'pc-local' } })
+  snapshot(localStore, { home, now: '2026-11-03T10:00:00.000Z', device: DEVICE })
 
   // The other machine: the same shared session and one of its own.
   const otherHome = path.join(root, 'other-home')
@@ -42,23 +43,54 @@ function build(t) {
   return { root, home, localStore, remoteStore, stick }
 }
 
-test('import prepares a merged vault without touching the live one', (t) => {
-  const { home, localStore, stick } = build(t)
+function objects(store) {
+  return fs.readdirSync(path.join(store.dir, 'objects')).filter((name) => name.endsWith('.bin')).length
+}
+
+test('import brings the carried vault in place, without copying the local one', (t) => {
+  const { localStore, stick } = build(t)
   const stickStore = openStore(path.join(stick, 'vault'), REMOTE)
-  const report = importVault({ stickStore, localStore, localPassphrase: LOCAL, stickPassphrase: REMOTE })
-  assert.equal(report.swapped, false)
-  assert.ok(fs.existsSync(report.prepared), 'the prepared vault exists')
-  assert.equal(verifyStore(openStore(report.prepared, LOCAL)).ok, true)
-  assert.equal(verifyStore(localStore).totals.sessions, 1, 'the live vault still has one session')
+
+  const before = objects(localStore)
+  const vaultBytesBefore = fs.statSync(path.join(localStore.dir, 'meta.json')).size // sanity: the vault exists
+  assert.ok(vaultBytesBefore > 0)
+
+  const report = importVault({
+    stickStore,
+    localStore,
+    localPassphrase: LOCAL,
+    stickPassphrase: REMOTE,
+    device: DEVICE,
+    now: '2026-11-03T13:00:00.000Z',
+  })
+
   assert.equal(report.merge.sessions, 2)
-  assert.match(report.nextStep, /--swap/)
-  void home
+  assert.equal(verifyStore(localStore).ok, true, JSON.stringify(report.merge.verification.problems))
+  assert.equal(verifyStore(localStore).totals.sessions, 2, 'the local vault now holds both')
+  // Only the genuinely new bytes are sealed: the shared session was not sealed again.
+  assert.equal(report.merge.sealedChunks, 1, 'one new chunk for the new session')
+  assert.equal(report.merge.reusedChunks, 1, 'the shared session chunk was reused')
+  assert.equal(objects(localStore), before + 2, 'one new chunk and one manifest: nothing else is copied')
+  // No prepared copy, no replaced copy: the import happened in place.
+  assert.equal(fs.readdirSync(path.dirname(localStore.dir)).some((name) => name.includes('.new-')), false)
+  assert.equal(fs.readdirSync(path.dirname(localStore.dir)).some((name) => name.includes('.replaced-')), false)
 })
 
-test('import --swap replaces the local vault, keeps the previous one and restores sessions', (t) => {
-  const { home, localStore, stick } = build(t)
+test('importing the same carried vault twice changes nothing', (t) => {
+  const { localStore, stick } = build(t)
   const stickStore = openStore(path.join(stick, 'vault'), REMOTE)
-  fs.mkdirSync(home, { recursive: true })
+  importVault({ stickStore, localStore, localPassphrase: LOCAL, stickPassphrase: REMOTE, device: DEVICE, now: '2026-11-03T13:00:00.000Z' })
+  const afterFirst = objects(localStore)
+  const bytesFirst = verifyStore(localStore).totals.bytes
+
+  importVault({ stickStore, localStore, localPassphrase: LOCAL, stickPassphrase: REMOTE, device: DEVICE, now: '2026-11-03T14:00:00.000Z' })
+  assert.equal(objects(localStore), afterFirst, 'no object is created by a no-op import')
+  assert.equal(verifyStore(localStore).totals.bytes, bytesFirst)
+})
+
+test('import restores only the sessions this home lacks, byte-exact', (t) => {
+  const { localStore, stick, home } = build(t)
+  const stickStore = openStore(path.join(stick, 'vault'), REMOTE)
 
   const report = importVault({
     stickStore,
@@ -66,15 +98,9 @@ test('import --swap replaces the local vault, keeps the previous one and restore
     localPassphrase: LOCAL,
     stickPassphrase: REMOTE,
     home,
-    swap: true,
+    device: DEVICE,
     now: '2026-11-03T13:00:00.000Z',
   })
-
-  assert.equal(report.swapped, true)
-  assert.ok(report.replaced && fs.existsSync(report.replaced), 'the previous vault is kept')
-  const local = openStore(path.join(path.dirname(localStore.dir), 'vault-local'), LOCAL)
-  assert.equal(verifyStore(local).ok, true)
-  assert.equal(verifyStore(local).totals.sessions, 2)
 
   const created = report.restored.created.map((item) => item.sessionId)
   assert.deepEqual(created, ['only-remote'], 'only the new session is created')
@@ -82,18 +108,29 @@ test('import --swap replaces the local vault, keeps the previous one and restore
   assert.equal(report.restored.problems.length, 0)
 })
 
+test('a dry run reports the plan and writes nothing', (t) => {
+  const { localStore, stick } = build(t)
+  const stickStore = openStore(path.join(stick, 'vault'), REMOTE)
+  const before = objects(localStore)
+  const report = importVault({ stickStore, localStore, localPassphrase: LOCAL, stickPassphrase: REMOTE, device: DEVICE, dryRun: true })
+  assert.equal(report.dryRun, true)
+  assert.equal(report.merge.sealedChunks, 1)
+  assert.equal(objects(localStore), before, 'nothing was written')
+  assert.equal(verifyStore(localStore).totals.sessions, 1)
+})
+
 test('import refuses a carried vault that does not verify and leaves everything alone', (t) => {
   const { localStore, stick } = build(t)
-  const objects = path.join(stick, 'vault', 'objects')
-  const victim = fs.readdirSync(objects)[0]
-  const file = path.join(objects, victim)
+  const objectsDir = path.join(stick, 'vault', 'objects')
+  const victim = fs.readdirSync(objectsDir)[0]
+  const file = path.join(objectsDir, victim)
   const bytes = fs.readFileSync(file)
   bytes[bytes.length - 1] ^= 0xff
   fs.writeFileSync(file, bytes)
 
   const stickStore = openStore(path.join(stick, 'vault'), REMOTE)
   assert.throws(
-    () => importVault({ stickStore, localStore, localPassphrase: LOCAL, stickPassphrase: REMOTE }),
+    () => importVault({ stickStore, localStore, localPassphrase: LOCAL, stickPassphrase: REMOTE, device: DEVICE }),
     /does not verify/,
   )
   assert.equal(verifyStore(localStore).totals.sessions, 1, 'the local vault is untouched')

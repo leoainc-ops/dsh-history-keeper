@@ -30,6 +30,7 @@ no los inventa. Cualquier función que necesite "entender" una sesión queda fue
 | `deviceId` / `deviceName` | string | dispositivo que **creó** la bóveda (informativo, no es el dueño de cada sesión) |
 | `manifest` | objeto | `{ id, cipherSha256 }`: puntero **legacy** a la cabeza; se conserva por compatibilidad |
 | `snapshots` | número | contador legacy; informativo |
+| `retention` | objeto | opcional, aditivo: `{ autoGc, compactAfterManifests, keepReplacedCopies }`. Política de espacio que viaja con la bóveda; si falta, el lector usa sus valores por defecto |
 
 Los metadatos sensibles no quedan en claro: `keyCheck` y los objetos están cifrados; el resto son
 identificadores aleatorios.
@@ -128,6 +129,8 @@ Códigos de error usados (estables): `BAD_FORMAT`, `AEAD_UNAVAILABLE`, `OBJECT_M
 `HEAD_MOVED`.
 
 `verify` **falla cerrado**: un solo problema ⇒ `ok: false` y el código correspondiente.
+
+`gc` sólo puede borrar objetos que ninguna cabeza alcance, y debe contar **también** los chunks de `archived`: una continuación archivada es historia, no basura.
 
 ## 10. Compatibilidad
 

@@ -11,6 +11,7 @@ import { makeLog, removeDir, tempDir, writeSession } from './helpers.js'
 
 const LOCAL = 'local-passphrase-1234'
 const REMOTE = 'remote-passphrase-1234'
+const DEVICE = { deviceId: 'aa'.repeat(16), deviceName: 'pc-local' }
 
 function build(t, remoteEvents = []) {
   const root = tempDir('keeper-compat-')
@@ -45,7 +46,7 @@ test('import refuses a carried vault written in an unknown format', (t) => {
   const { localStore } = build(t)
   const fake = { meta: { format: 'dsh-history-keeper/store/2' }, dir: '/nowhere', key: Buffer.alloc(0) }
   assert.throws(
-    () => importVault({ stickStore: fake, localStore, localPassphrase: LOCAL, stickPassphrase: REMOTE }),
+    () => importVault({ stickStore: fake, localStore, localPassphrase: LOCAL, stickPassphrase: REMOTE, device: DEVICE }),
     /uses format dsh-history-keeper\/store\/2/,
   )
 })
@@ -53,7 +54,7 @@ test('import refuses a carried vault written in an unknown format', (t) => {
 test('the prepare step reports which sessions this host cannot read', (t) => {
   const { home, localStore, stick } = build(t, [[{ type: 'brand-new-event' }]])
   const stickStore = openStore(path.join(stick, 'vault'), REMOTE)
-  const report = importVault({ stickStore, localStore, localPassphrase: LOCAL, stickPassphrase: REMOTE, home })
+  const report = importVault({ stickStore, localStore, localPassphrase: LOCAL, stickPassphrase: REMOTE, home, device: DEVICE })
 
   assert.equal(report.preflight.readable, 1, 'the shared session is readable')
   const unreadable = report.preflight.unreadable.map((item) => item.sessionId)
@@ -64,7 +65,7 @@ test('the prepare step reports which sessions this host cannot read', (t) => {
 test('an old vault with no unknown events is fully readable', (t) => {
   const { home, localStore, stick } = build(t)
   const stickStore = openStore(path.join(stick, 'vault'), REMOTE)
-  const report = importVault({ stickStore, localStore, localPassphrase: LOCAL, stickPassphrase: REMOTE, home })
+  const report = importVault({ stickStore, localStore, localPassphrase: LOCAL, stickPassphrase: REMOTE, home, device: DEVICE })
   assert.equal(report.preflight.unreadable.length, 0)
   assert.equal(report.preflight.readable, report.merge.sessions)
 })

@@ -41,7 +41,7 @@ commands
   merge      combine two vaults into a new one (sources untouched)
   inventory  sessions grouped by the device they came from
   paths      where every keeper file lives on this machine
-  export     verify the vault and copy it to a pendrive, with a receipt
+  export     verify the vault and copy it to a pendrive (refuses to overwrite newer content), with a receipt
   import     verify a carried vault, merge it, and (with --swap) make it the local one
   verify     check every object, hash and chain
   status     what the store holds and what is unpublished
@@ -56,6 +56,11 @@ common options
 
 init options
   --device-name <name>     label stored with this device (default: hostname)
+
+export options
+  --to <dir>               destination on the pendrive
+  --replace                overwrite a destination that holds unknown or newer content
+  --keep-replaced          keep the previous copy as vault.replaced-<timestamp>
 
 snapshot options
   --session <id>           limit to one session (repeatable)
@@ -481,29 +486,27 @@ function main() {
       localPassphrase: localPass.passphrase,
       stickPassphrase: stickPass.passphrase,
       home,
-      swap: options.swap === true,
+      device,
+      dryRun: options['dry-run'] === true,
       onDivergence: options['on-divergence'] ?? 'owner',
     })
 
     const lines = [
-      'import from ' + stickDir + (report.swapped ? '  (swapped into place)' : '  (prepared, nothing live was touched)'),
+      'import from ' + stickDir + (report.dryRun ? '  (dry run: nothing written)' : '  (applied in place)'),
       '  carried vault: verified  ' + report.stick.totals.sessions + ' session(s)  ' + report.stick.totals.frames + ' frame(s)  ' + humanBytes(report.stick.totals.bytes),
       '  merged: ' + report.merge.sessions + ' session(s)  ' + report.merge.archived + ' archived  ' + report.merge.verification.frames + ' frame(s)  ' + humanBytes(report.merge.verification.bytes),
-      '  dedupe: ' + humanBytes(report.merge.dedupedBytes) + ' not stored twice',
-      '  this host can read ' + report.preflight.readable + ' of them' + (report.preflight.unreadable.length > 0 ? ', not ' + report.preflight.unreadable.length + ' (they need a newer DSH)' : ''),
+      '  chunks: ' + report.merge.chunks + '  reused ' + report.merge.reusedChunks + '  sealed ' + report.merge.sealedChunks + ' (' + humanBytes(report.merge.sealedBytes) + ' new)',
     ]
-    if (report.swapped) {
-      lines.push('  previous vault: ' + report.replaced)
-      if (report.restored) {
-        lines.push('  restore into ' + report.restored.home)
-        lines.push('    created: ' + report.restored.created.length + '   identical: ' + report.restored.identical.length + '   refused: ' + report.restored.refused.length + '   unreadable: ' + report.restored.incompatible.length)
-        for (const item of report.restored.created) lines.push('    + ' + item.sessionId + '  ' + humanBytes(item.bytes))
-        for (const item of report.restored.refused) lines.push('    ! ' + item.sessionId + '  ' + item.reason)
-        for (const item of report.restored.incompatible) lines.push('    x ' + item.sessionId + '  skipped: this host does not know ' + item.unknownEvents.join(', '))
-        lines.push('  reopen DSH to see them')
-      }
-    } else {
-      lines.push('  next: run this again with --swap, with DSH closed, to make it the local vault')
+    if (report.preflight) {
+      lines.push('  this host can read ' + report.preflight.readable + ' of them' + (report.preflight.unreadable.length > 0 ? ', not ' + report.preflight.unreadable.length + ' (they need a newer DSH)' : ''))
+    }
+    if (report.restored) {
+      lines.push('  restore into ' + report.restored.home)
+      lines.push('    created: ' + report.restored.created.length + '   identical: ' + report.restored.identical.length + '   refused: ' + report.restored.refused.length + '   unreadable: ' + report.restored.incompatible.length)
+      for (const item of report.restored.created) lines.push('    + ' + item.sessionId + '  ' + humanBytes(item.bytes))
+      for (const item of report.restored.refused) lines.push('    ! ' + item.sessionId + '  ' + item.reason)
+      for (const item of report.restored.incompatible) lines.push('    x ' + item.sessionId + '  skipped: this host does not know ' + item.unknownEvents.join(', '))
+      lines.push('  reopen DSH to see them')
     }
     print(report, options, lines.join('\n'))
     return
@@ -528,7 +531,8 @@ function main() {
       to: path.resolve(to),
       keyFile: options['key-file'] ?? layout.key,
       pluginVersion,
-      keepReplaced: options['no-keep-replaced'] !== true,
+      keepReplaced: options['keep-replaced'] === true,
+      replace: options.replace === true,
     })
     const lines = [
       'export  ' + report.copy.dir,

@@ -125,6 +125,8 @@ test('the policy explains itself and respects hard bounds', (t) => {
 
 test('garbage collection never deletes something the chain still needs', (t) => {
   const { dir, home, store } = setup(t)
+  // Retention can turn the automatic reclaim off; the operator gc must still work then.
+  store.meta.retention = { autoGc: false }
   publishGrowing(store, home, 4)
   compact(store, { now: '2026-10-24T11:00:00.000Z' })
 

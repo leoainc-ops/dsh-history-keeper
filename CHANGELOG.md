@@ -20,6 +20,32 @@ usable but the host APIs it binds to are still moving.
 - docs/CASES.md: the 26 situations the plugin covers, by role (backup, transport, convergence,
   recovery), with the 18 covered, the 5 conditional and the 3 gaps, and where the gaps concentrate.
 
+## 0.1.0-rc.38 — 2026-11-07
+
+### M1 — stop the growth
+
+- **Compaction reclaims what it replaces.** After writing a checkpoint, the manifests it made
+  unreachable are deleted at once (bounded, inside the same lock, after the checkpoint verifies).
+  Retention can turn this off (`meta.retention.autoGc`).
+- **`gc` no longer endangers archived continuations.** `referencedIds` ignored `archived` chunks, so
+  a garbage collection would have deleted the very bytes the archive preserves. Fixed, with a
+  regression test.
+- **Retention lives in the vault** (`meta.retention`: `autoGc`, `compactAfterManifests`,
+  `keepReplacedCopies`), so the policy travels with the data; new vaults get the defaults.
+- **`import` works in place, without re-sealing.** The carried vault is brought into the local one
+  by writing one manifest: chunks whose plaintext already exists are referenced, only new bytes are
+  sealed, sessions that change are written with `reset`, and the previous archived lineages are
+  re-listed so a reset does not lose them. The old path built a whole new vault and swapped it in,
+  which multiplied the size on every trip. Importing the same vault twice now writes nothing.
+- **`export` no longer leaves copies behind** by default (`--keep-replaced` restores the old
+  behaviour), and **refuses to overwrite** a destination that holds sessions this vault does not
+  have, or one it cannot open (`--replace` to force).
+- `import --dry-run` reports the plan without writing.
+
+### Measured on the real vault
+
+Before: 252 objects, 202 referenced, **50 unreferenced (70.5 KiB)**, vault 14.19 MB against 14.11 MB
+of session logs. The format overhead is ~80 KB; the growth came from transport copies, not capture.
 ## 0.1.0-rc.37 — 2026-11-04
 
 ### Added

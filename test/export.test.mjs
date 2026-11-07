@@ -55,8 +55,14 @@ test('a second export replaces the previous copy instead of mixing two vaults', 
   const first = exportVault({ store, passphrase: PASS, to, now: '2026-11-03T10:00:00.000Z' })
   const second = exportVault({ store, passphrase: PASS, to, now: '2026-11-03T11:00:00.000Z' })
   assert.equal(first.copy.replaced, null)
-  assert.ok(second.copy.replaced && fs.existsSync(second.copy.replaced), 'the previous copy is kept aside')
+  // Replaced, not kept: keeping the previous copy multiplied the size on every trip.
+  assert.equal(second.copy.replaced, null)
+  assert.equal(fs.readdirSync(to).some((name) => name.includes('.replaced-')), false)
   assert.notEqual(first.receiptPath, second.receiptPath)
+
+  // An operator can still ask for it explicitly.
+  const third = exportVault({ store, passphrase: PASS, to, now: '2026-11-03T12:00:00.000Z', keepReplaced: true })
+  assert.ok(third.copy.replaced && fs.existsSync(third.copy.replaced), 'kept on request')
 })
 
 test('export refuses a vault that does not verify', (t) => {
