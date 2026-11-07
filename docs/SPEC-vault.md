@@ -111,6 +111,10 @@ Cada manifiesto es un documento JSON, sellado como objeto. Su referencia es `{ i
   dueño no existe. Nunca por antigüedad sola.
 - La bóveda es **append-only**: no se modifican objetos existentes. Reemplazar o compactar crea
   objetos nuevos y una cadena nueva que los referencia.
+- **Compare-and-swap**: un escritor declara la cabeza contra la que preparó su payload; si cambió,
+  la escritura se rechaza con `HEAD_MOVED`. Nunca se escribe sobre una vista vieja.
+- **Aviso de host**: el plugin deja `history-keeper-host.json` en el home mientras está montado;
+  la CLI se niega a escribir con el host abierto (`--allow-host-open` lo saltea a sabiendas).
 - El host es el único dueño de `sessions/`. El keeper escribe ahí sólo en `restore`, y nunca
   sobrescribe: aparta lo existente.
 

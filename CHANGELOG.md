@@ -20,6 +20,30 @@ usable but the host APIs it binds to are still moving.
 - docs/CASES.md: the 26 situations the plugin covers, by role (backup, transport, convergence,
   recovery), with the 18 covered, the 5 conditional and the 3 gaps, and where the gaps concentrate.
 
+## 0.1.0-rc.39 — 2026-11-07
+
+### M2 — a reliable writer
+
+- **Compare-and-swap on the head.** `writeManifest` accepts `expectHead`; if the head moved
+  between preparing a payload and writing it, the write is refused with `HEAD_MOVED` instead of
+  orphaning a manifest and leaving a hole in a session. `snapshot` and `compact` pass the head they
+  prepared against.
+- **A stale lock is only broken when its owner is gone.** Age alone let a live writer's lock be
+  stolen on a slow disk or after a resume, which is how two processes ended up writing the same
+  head in the field. The owner PID is checked; a live owner keeps its lock.
+- **The newest descriptor wins.** The chain is walked newest first, but the per-`(session, seq)`
+  dedupe kept the *last* descriptor — the oldest — so a stale manifest could resurrect an old
+  lineage over the current one. The first descriptor now wins, with a regression test.
+- **The CLI refuses to write while DSH is open.** The plugin writes `history-keeper-host.json` in
+  the DSH home when it mounts and refreshes it on every capture; `snapshot`, `compact`, `gc --yes`,
+  `import`, `restore` and `attachments` refuse with a clear message instead of racing the plugin.
+  A marker left by a crashed host is detected and removed, so it cannot block a store forever.
+  `--allow-host-open` exists for the case where the operator knows the plugin is idle.
+
+### Why this order
+
+These four close the mechanisms that damaged a vault on 2026-11-02; the roadmap makes M2 a hard
+dependency of M5 (automatic import), because importing at start writes to the host's home.
 ## 0.1.0-rc.38 — 2026-11-07
 
 ### M1 — stop the growth

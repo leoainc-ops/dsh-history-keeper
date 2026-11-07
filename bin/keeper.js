@@ -20,6 +20,7 @@ import { collectGarbage, compact } from '../lib/compact.js'
 import { inventory } from '../lib/inventory.js'
 import { exportVault } from '../lib/export.js'
 import { importVault } from '../lib/import.js'
+import { assertHostClosed } from '../lib/hostguard.js'
 import { resolvePaths } from '../lib/paths.js'
 import { mergeStores } from '../lib/merge.js'
 import { resolveDevice } from '../lib/device.js'
@@ -53,6 +54,7 @@ common options
   --home <dir>             DSH home (default: $DSH_HOME or ~/.dsh)
   --passphrase-env <name>  env var holding the passphrase (default KEEPER_PASSPHRASE)
   --json                   machine-readable output
+  --allow-host-open        skip the "close DSH" guard (only if the plugin is idle)
 
 init options
   --device-name <name>     label stored with this device (default: hostname)
@@ -98,7 +100,7 @@ function parse(argv) {
       inline = key.slice(eq + 1)
       key = key.slice(0, eq)
     }
-    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight' || key === 'swap') {
+    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight' || key === 'swap' || key === 'allow-host-open' || key === 'keep-replaced' || key === 'replace') {
       options[key] = true
       continue
     }
@@ -183,6 +185,13 @@ function main() {
   const home = path.resolve(options.home ?? defaultHome())
   const device = resolveDevice({ configDir: home, deviceName: options['device-name'] })
 
+  // A CLI write must not race the plugin for the same vault (M2). snapshot and compact check
+  // this in their own block; the remaining write commands check here, once.
+  const otherWrite =
+    (command === 'gc' && options.yes === true) ||
+    ((command === 'import' || command === 'restore' || command === 'attachments') && options['dry-run'] !== true)
+  if (otherWrite) assertHostClosed(home, { allow: options['allow-host-open'] === true })
+
   if (command === 'init') {
     const store = options.store ?? path.join(os.homedir(), '.dsh', 'history-keeper')
     const pass = passphraseFrom(options, { allowGenerate: true })
@@ -223,6 +232,7 @@ function main() {
   }
 
   if (command === 'snapshot') {
+    assertHostClosed(home, { allow: options['allow-host-open'] === true })
     const store = openFrom(options)
     const result = snapshot(store, {
       home,
@@ -291,6 +301,7 @@ function main() {
   }
 
   if (command === 'compact') {
+    assertHostClosed(home, { allow: options['allow-host-open'] === true })
     const store = openFrom(options)
     const result = compact(store, { dryRun: Boolean(options['dry-run']), device })
     const lines = [

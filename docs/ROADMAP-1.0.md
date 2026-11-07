@@ -5,6 +5,18 @@ Asentado el 2026-11-07. **Punto de partida**: `0.1.0-rc.37`. **Destino**: `1.0.0
 La regla de esta etapa: **no se agregan funciones nuevas**. Todo lo que sigue cierra lo que ya
 existe, o completa lo que el estándar necesita para ser un estándar.
 
+## Estado de ejecución
+
+| Fase | Estado | Versión |
+|---|---|---|
+| M1 — frenar el crecimiento | **hecho** · 132/132 tests · invariante medido: bóveda/sesiones 1,012 | `0.1.0-rc.38` |
+| M2 — escritor confiable | **hecho** · CAS, lock por PID, descriptor más nuevo, guardia de host | `0.1.0-rc.39` |
+| M3 — formato v1 y handshake | pendiente | — |
+| M4 — extracción legible/fiel | pendiente | — |
+| M5 — arranque con importación automática | pendiente (requiere M2) | — |
+| M6 — congelar 1.0.0 | pendiente | — |
+
+
 ## Principios que ordenan la etapa
 
 1. **La bóveda es el activo; el plugin es un adaptador.** El formato (`docs/SPEC-vault.md`) manda;
