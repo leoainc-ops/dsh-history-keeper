@@ -1,0 +1,140 @@
+# Hoja de ruta hacia 1.0 y hacia la bóveda como producto estándar
+
+Asentado el 2026-11-07. **Punto de partida**: `0.1.0-rc.37`. **Destino**: `1.0.0`.
+
+La regla de esta etapa: **no se agregan funciones nuevas**. Todo lo que sigue cierra lo que ya
+existe, o completa lo que el estándar necesita para ser un estándar.
+
+## Principios que ordenan la etapa
+
+1. **La bóveda es el activo; el plugin es un adaptador.** El formato (`docs/SPEC-vault.md`) manda;
+   el plugin, la CLI y los lanzadores son superficies sobre él.
+2. **La bóveda guarda bytes que escribió el host.** No los interpreta, no los recompone, no los
+   inventa. Fusionar o reescribir logs queda fuera del contrato (ver `docs/LESSONS.md`).
+3. **Eficiencia de espacio desde el día uno.** Invariante permanente:
+   `bytes de la bóveda / bytes únicos de sesión ≤ 1,1`, y **0 objetos no referenciados** después de
+   cada compactación. No se mide "cuántos viajes aguanta": se mide siempre.
+4. **Compatibilidad con handshake.** La bóveda declara su formato y su lector mínimo; el plugin avisa
+   cuando está desactualizado; un lector viejo se niega con un código, no adivina.
+5. **Una bóveda externa se importa sola.** Si existe y verifica, lo nuevo se trae e informa; el
+   usuario puede deshacer.
+
+## Fases del plugin
+
+### M1 — Frenar el crecimiento (`0.1.0-rc.38`)
+
+- `gc` automático y acotado después de cada compactación; retención declarada **dentro** de la bóveda.
+- `import` **sin re-sellar**: los objetos idénticos se reutilizan; un viaje no duplica el contenido.
+- `export` sin copias residuales (`.replaced-*` deja de quedar por defecto).
+- El plugin **no** duplica la bóveda en disco por su cuenta.
+
+**Aceptación**: medido sobre la bóveda real, el total no crece entre transportes y los no
+referenciados quedan en 0.
+
+### M2 — Escritor confiable (`0.1.0-rc.39`)
+
+- CAS de cabeza (`HEAD_MOVED`) en `writeManifest`; `snapshot` declara contra qué cabeza trabaja.
+- `LOCK` se rompe **sólo** si su dueño ya no existe.
+- Dedupe por el descriptor **más nuevo** de la cadena.
+- **Guardia**: ninguna escritura de CLI con DSH abierto (error claro, no intento silencioso).
+
+**Aceptación**: dos procesos simultáneos, 10 rondas → `verify: ok`, sin huecos.
+
+### M3 — Formato v1 y estándar (`0.1.0-rc.40`)
+
+Completa lo que falta del contrato (ver la pista E, abajo):
+
+- **Catálogo** dentro de la bóveda (E2).
+- **Handshake** de versión de formato, de escritor y de lector mínimo (E3).
+- Extensiones con **espacio de nombres** en la especificación (E1, ampliación).
+- `export --downlevel <versión>` (E3).
+
+**Aceptación**: `keeper conform` valida bóvedas de versiones anteriores, rechaza una mayor con
+código claro, y el plugin avisa si está desactualizado indicando qué versión hace falta.
+
+### M4 — Extracción (`0.1.0-rc.41`)
+
+- `export --jsonl` (fiel, reimportable) y `export --readable` (texto).
+- Condiciones no negociables: ruta de salida obligatoria, permisos de sólo el usuario, sin
+  sobrescribir, encabezado que declara "copia en texto plano", y el *gate* de secretos antes
+  (se niega con `--force` para continuar).
+- El render se guarda **cifrado** como un objeto más; sale en claro sólo por este comando.
+
+**Aceptación**: una sesión sale como `.txt` legible y como `.jsonl` reimportable, y la bóveda no
+cambia de naturaleza.
+
+### M5 — Arranque con importación automática (`0.1.0-rc.42`)
+
+1. Al iniciar el host, el plugin **detecta** una bóveda externa en los canales conocidos.
+2. La **verifica** y comprueba la versión del formato.
+3. **Compara**: sesiones que sólo están en la externa, y las que están más largas.
+4. **Importa por defecto** lo nuevo y **informa** qué trajo (no pregunta: la existencia de la bóveda
+   lo justifica).
+5. Deja **diario de deshacer**: la bóveda anterior y las sesiones reemplazadas. `import --undo`
+   vuelve exactamente al estado previo.
+6. **Confirmación** del diario: automática en el primer `export` posterior, o a los **7 días**, lo
+   que ocurra primero.
+7. **Guarda en el export**: se niega a sobrescribir una bóveda externa que tenga contenido que la
+   local no tiene; `--replace` para forzar.
+
+**Cambio de regla que esto implica**: el plugin **sí** escribe en `sessions/`, pero **sólo** por esta
+vía, con el lock tomado y con el diario de deshacer.
+
+**Dependencia dura**: M5 **no puede entregarse antes de M2** (escritor confiable) ni sin el diario de
+deshacer.
+
+**Aceptación**: con la bóveda externa conectada, al abrir DSH el trabajo de la otra máquina ya está
+disponible; `import --undo` deja todo como estaba.
+
+### M6 — Congelar 1.0.0
+
+- Matriz de compatibilidad probada: 2 versiones de DSH, 2 del plugin.
+- `docs/CLI.md`, `docs/OPERATIONS.md`, `docs/TRANSFER.md`, `docs/SPEC-vault.md` y el README al día
+  (el README todavía declara `0.2.0-rc.2` como versión de desarrollo).
+- Sin funciones nuevas: sólo correcciones que bloqueen la aceptación de M5.
+
+## Pista E — la bóveda como producto estándar
+
+| # | Pieza | Estado |
+|---|---|---|
+| **E1** | Especificación del formato (`docs/SPEC-vault.md`) | **existe**; falta la regla de extensiones con espacio de nombres |
+| **E2** | Catálogo dentro de la bóveda: host y versión, equipo, usuario, proyecto, sesión, rango de turnos, fechas, tamaños, hashes, adjuntos | **falta** — entra en M3 |
+| **E3** | Handshake de versión y `export --downlevel` | **falta** — entra en M3 |
+| **E4** | Conformidad (`conformance/`, `npm run conformance`) | **existe** (5 puntos); se amplía con bóvedas de oro por versión y con el catálogo |
+| **E5** | Matriz de compatibilidad documentada y probada | **falta** — entra en M6 |
+| **E6** | Después de 1.0: especificación pública, licencia del formato y validadores de terceros | post-1.0 |
+
+## Definición de terminado de la 1.0
+
+1. El ciclo completo funciona **sin editar archivos ni escribir comandos finos**: trabajar en A →
+   pendrive → abrir DSH en B (ya está) → trabajar en B → abrir DSH en A (ya está).
+2. **Ninguna operación duplica la bóveda**; el tamaño se mantiene pegado a las sesiones únicas.
+3. La bóveda se describe a sí misma; `conform` la valida; una versión mayor se rechaza con código.
+4. Se extrae a texto legible y a JSONL fiel, con la clave y sólo por comando explícito.
+5. Con DSH abierto no hay escrituras de CLI; el plugin captura, compacta, importa y no copia.
+6. La matriz de versiones está escrita y probada.
+
+## Fuera de la 1.0 (a propósito)
+
+Consolidar o fusionar conversaciones en la vista (depende del host) · UI propia · Hub · sincronización
+por red o nube · adaptadores para otros hosts · cambios de cifrado o de frase.
+
+## Decisiones tomadas (registro)
+
+| Fecha | Decisión |
+|---|---|
+| 2026-11-03 | La bóveda es el producto; el plugin es un adaptador. No se sintetizan logs. |
+| 2026-11-07 | La clave pertenece a la bóveda (autodescriptiva); la frase es el único secreto. Recuperación en un host nuevo = bóveda + frase. |
+| 2026-11-07 | Eficiencia de espacio como invariante permanente, no como prueba de N viajes. |
+| 2026-11-07 | La bóveda externa se importa sola al arrancar; se informa; hay deshacer (7 días o primer export). |
+| 2026-11-07 | El export no sobrescribe una externa con contenido que la local no tiene (`--replace` para forzar). |
+| 2026-11-07 | El plugin escribe en `sessions/` sólo por el import, con lock y diario de deshacer. |
+
+## Riesgos conocidos
+
+- **M5 depende de M2**: importar automáticamente escribe en el home del host; sin escritor confiable
+  repetiría la carrera que dañó una bóveda en campo.
+- **El aviso al iniciar depende de la API de UI del host**: si DSH no expone modal o selector, la
+  alternativa es un aviso visible en la conversación más `/keeper import <ruta>`. Se verifica al
+  llegar a M5 y se informa antes de prometerlo.
+- **El catálogo agrega superficie al contrato**: se define en M3 junto con la conformidad, no antes.

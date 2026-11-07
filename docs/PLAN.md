@@ -662,3 +662,21 @@ conservadora, registrada en `docs/adr/0001-filosofia-conservadora.md`.
 Consecuencia práctica: una segunda filosofía **no necesita un fork**; necesita un paquete que pase la
 conformidad. Un fork sólo se justifica si cambia el contrato (sintetizar logs, reescribir ids), y en
 ese caso su bóveda ya no es esta bóveda.
+## 15. Hoja de ruta hacia 1.0 y hacia la bóveda estándar (2026-11-07)
+
+La planificación vigente está en **`docs/ROADMAP-1.0.md`**. Resume el acuerdo de esta etapa:
+
+- **Seis fases del plugin** (M1 frenar crecimiento → M2 escritor confiable → M3 formato v1 y handshake
+  → M4 extracción legible/fiel → M5 arranque con importación automática → M6 congelar 1.0.0).
+- **Pista E**: la bóveda como producto estándar. `docs/SPEC-vault.md` y `conformance/` ya existen;
+  faltan el **catálogo**, el **handshake de versión** y el **`export --downlevel`**, y la matriz de
+  compatibilidad.
+- **Definición de terminado**: el ciclo A→pendrive→B→A funciona sin editar archivos; la bóveda no se
+  duplica; se describe a sí misma; se extrae a texto y a JSONL; con DSH abierto no hay escrituras de
+  CLI; la matriz está probada.
+- **Fuera de 1.0**: consolidar conversaciones en la vista, UI propia, Hub, sync por red, adaptadores
+  para otros hosts, cambios de cifrado.
+
+Regla de la etapa: no se agregan funciones nuevas; se cierra lo que existe y se completa lo que el
+estándar necesita. Las dependencias duras (M5 requiere M2 y el diario de deshacer) y los riesgos
+conocidos (la API de UI del host para el aviso de arranque) están registrados en la hoja de ruta.

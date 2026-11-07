@@ -112,6 +112,12 @@ create the store when it is missing.
 Timestamps are stored in UTC (an instant must be unambiguous across machines) and
 rendered in your local time zone next to the offset.
 
+## Roadmap
+
+The plan to 1.0 and to the vault as a standard product lives in
+[docs/ROADMAP-1.0.md](docs/ROADMAP-1.0.md): six phases, a definition of done, and what is
+explicitly out of scope. The format itself is the contract in [docs/SPEC-vault.md](docs/SPEC-vault.md).
+
 ## Design principles
 
 1. **No external binaries.** `node:` only — no `git`, no `age`, nothing to install.
