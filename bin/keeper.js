@@ -21,6 +21,7 @@ import { inventory } from '../lib/inventory.js'
 import { exportVault } from '../lib/export.js'
 import { importVault } from '../lib/import.js'
 import { buildCatalog } from '../lib/catalog.js'
+import { extractSession } from '../lib/extract.js'
 import { checkCompatibility, describeCompatibility } from '../lib/handshake.js'
 import { assertHostClosed } from '../lib/hostguard.js'
 import { PLUGIN_VERSION } from '../lib/version.js'
@@ -46,6 +47,7 @@ commands
   inventory  sessions grouped by the device they came from
   paths      where every keeper file lives on this machine
   catalog    every conversation in the vault, organized by workspace, turns and dates
+  extract    write one conversation as readable text or as its JSONL, outside the vault
   export     verify the vault and copy it to a pendrive (refuses to overwrite newer content), with a receipt
   import     verify a carried vault, merge it, and (with --swap) make it the local one
   verify     check every object, hash and chain
@@ -68,6 +70,13 @@ export options
   --replace                overwrite a destination that holds unknown or newer content
   --keep-replaced          keep the previous copy as vault.replaced-<timestamp>
   --downlevel <version>    declare the copy readable by this older plugin version
+
+extract options
+  --session <id>           the conversation to extract
+  --out <file>             where to write the plaintext (required, never overwritten)
+  --jsonl                  write the decompressed log instead of the transcript
+  --no-reasoning           leave the model reasoning out of the transcript
+  --max-tool-chars <n>     truncate tool output at n characters (default 2000)
 
 snapshot options
   --session <id>           limit to one session (repeatable)
@@ -105,7 +114,7 @@ function parse(argv) {
       inline = key.slice(eq + 1)
       key = key.slice(0, eq)
     }
-    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight' || key === 'swap' || key === 'allow-host-open' || key === 'keep-replaced' || key === 'replace') {
+    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight' || key === 'swap' || key === 'allow-host-open' || key === 'keep-replaced' || key === 'replace' || key === 'jsonl' || key === 'no-reasoning') {
       options[key] = true
       continue
     }
@@ -278,6 +287,33 @@ function main() {
     return
   }
 
+  if (command === 'extract') {
+    const sessionId = options.session && options.session.length > 0 ? options.session[0] : null
+    if (!sessionId) fail('extract needs --session <id>')
+    const store = openFrom(options)
+    const format = options.jsonl === true ? 'jsonl' : 'readable'
+    const report = extractSession(store, {
+      sessionId,
+      out: options.out,
+      format,
+      force: options.force === true,
+      maxToolChars: options['max-tool-chars'] ? Number(options['max-tool-chars']) : undefined,
+      includeReasoning: options['no-reasoning'] !== true,
+    })
+    const lines = [
+      'extract ' + report.sessionId,
+      '  format:  ' + report.format,
+      '  written: ' + report.out + '  ' + humanBytes(report.bytes) + '  ' + report.lines + ' line(s)',
+    ]
+    if (report.stats) {
+      lines.push('  content: ' + report.stats.turns + ' turn(s)  ' + report.stats.users + ' user message(s)  ' + report.stats.assistants + ' assistant message(s)  ' + report.stats.toolCalls + ' tool call(s)')
+      if (report.stats.unknown.length > 0) lines.push('  note:    event types not rendered: ' + report.stats.unknown.join(', '))
+    }
+    if (report.secretRules.length > 0) lines.push('  ATENCION: el texto contiene lo que parece una credencial (' + report.secretRules.join(', ') + ') y se escribio con --force')
+    lines.push('  este archivo es texto plano: NO esta protegido por la boveda')
+    print(report, options, lines.join("\n"))
+    return
+  }
   if (command === 'verify') {
     const store = openFrom(options)
     const result = verifyStore(store)

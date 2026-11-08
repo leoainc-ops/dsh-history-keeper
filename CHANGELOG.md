@@ -20,6 +20,33 @@ usable but the host APIs it binds to are still moving.
 - docs/CASES.md: the 26 situations the plugin covers, by role (backup, transport, convergence,
   recovery), with the 18 covered, the 5 conditional and the 3 gaps, and where the gaps concentrate.
 
+## 0.1.0-rc.41 — 2026-11-07
+
+### M4 — plaintext extraction
+
+- **`keeper extract --session <id> --out <file>`** writes one conversation as a readable Markdown
+  transcript (`--jsonl` writes the decompressed log instead). This is the only operation that
+  produces an unprotected file, so it is narrow by construction:
+  - the destination is required and never overwritten (`--force` to replace on purpose);
+  - a path inside the vault, the session tree or the attachment tree is refused;
+  - the secret gate runs over the result; if it matches, nothing is written unless `--force`,
+    and the report names the rules;
+  - the first line says it: *PLAINTEXT COPY — not protected by the vault*.
+- **The renderer never fails on the unknown.** It renders turns, user and assistant messages,
+  reasoning (collapsible), tool calls and results, the session title and a note with the system
+  prompt size; event types it does not know are listed in the header, not dropped silently. The
+  same tool call is not printed twice when the host wrote it both inside the message and as a
+  separate event.
+- A readable copy carries a **BOM** so Notepad and Excel on Windows read it as UTF-8; the `jsonl`
+  copy does not, because it must stay byte-comparable.
+- The renderer is **derived**, never stored: the vault keeps the host's bytes, and the transcript
+  is recomputed from them (same reasoning as the catalog: no duplicated state, no extra writes).
+
+### Naming
+
+The roadmap said `export --jsonl` / `export --readable`. It shipped as `keeper extract`, because
+`export` already means "copy the vault to a pendrive" and overloading it would make both unsafe to
+remember.
 ## 0.1.0-rc.40 — 2026-11-07
 
 ### M3 — format v1 and the version handshake
