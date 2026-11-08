@@ -69,7 +69,7 @@ test('import brings the carried vault in place, without copying the local one', 
   assert.equal(verifyStore(localStore).totals.sessions, 2, 'the local vault now holds both')
   // Only the genuinely new bytes are sealed: the shared session was not sealed again.
   assert.equal(report.merge.sealedChunks, 1, 'one new chunk for the new session')
-  assert.equal(report.merge.reusedChunks, 1, 'the shared session chunk was reused')
+  assert.equal(report.merge.reusedChunks, 0, 'the shared session is identical, so it is skipped instead of re-read')
   assert.equal(objects(localStore), before + 2, 'one new chunk and one manifest: nothing else is copied')
   // No prepared copy, no replaced copy: the import happened in place.
   assert.equal(fs.readdirSync(path.dirname(localStore.dir)).some((name) => name.includes('.new-')), false)

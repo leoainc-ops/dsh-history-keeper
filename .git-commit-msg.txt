@@ -1,20 +1,15 @@
-fix(m5): the drop box accepts the pendrive shape, help lists the new actions, --swap is gone (0.1.0-rc.45)
+fix(merge): append instead of re-chunking, skip identical sessions, persist reset (0.1.0-rc.46)
 
-Exercising the real host showed three defects.
+/keeper import failed in the field with BYTE_GAP on the session that is still being
+written: the merge rebuilt the session's descriptor list from byte zero, and the reader
+then saw two different descriptor sets for the same session. The rollback restored the
+previous vault, so nothing was lost.
 
-/keeper import F:\keeper-transfer failed because staging expected the vault
-directory itself; it now accepts either the vault or the folder that contains it
-and says which paths it looked at when neither exists.
+Identical sessions are now skipped (no chunks, no manifest entry), a session that grew
+receives only the bytes it lacks from the end of its current lineage, and reset is
+persisted by writeManifest and honoured by the reader instead of being dropped silently.
 
-The plugin help still listed only the original six actions; it now lists import,
-upgrade and undo, and says where the drop box is.
-
---swap was still accepted although it has done nothing since M1, and the launcher
-scripts still passed it; both sides were updated so nothing passes a flag that
-does nothing.
-
-Also fixed while closing this: init honours --home (it was hardcoded to the real
-home, which is how a stray ~/.dsh/history-keeper.key appeared and was removed), a
-generated key with an explicit --store is written next to that store instead of
-in another vault's home, and the argument parser no longer reads "no inline
-value" as the value null (which had made every --option value read as empty).
+Measured on the two real vaults: both verify ok with the same storeId and 11 sessions;
+ten are byte-identical and only the growing session differs (PC 10,946,721 B vs pendrive
+9,640,095 B). The stick had nothing the PC lacked, so the correct outcome is "nothing
+new".

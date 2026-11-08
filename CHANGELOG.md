@@ -20,6 +20,29 @@ usable but the host APIs it binds to are still moving.
 - docs/CASES.md: the 26 situations the plugin covers, by role (backup, transport, convergence,
   recovery), with the 18 covered, the 5 conditional and the 3 gaps, and where the gaps concentrate.
 
+## 0.1.0-rc.46 — 2026-11-08
+
+### The merge was re-chunking what it should have appended
+
+`/keeper import` failed in the field with `LATENCY`/`BYTE_GAP` on the session that was still being
+written: the merge rebuilt the session's descriptor list from byte zero (re-chunking it), and the
+reader then saw two different descriptor sets for the same session and reported a gap. The rollback
+restored the previous vault, so nothing was lost.
+
+- **Identical sessions are skipped.** If the local vault already holds the session up to the same
+  byte, the merge writes nothing for it: no chunks, no manifest entry.
+- **Merging appends.** A session that grew receives only the bytes it lacks, from the end of its
+  current lineage, so its descriptors stay contiguous and nothing already published is re-chunked.
+- **`reset` is real.** `writeManifest` now persists the field and the reader honours it (it used to
+  drop it silently, which is what made a re-chunked list merge with the old one). Merging does not
+  need it, but the contract says what it does.
+
+### Measured on the two real vaults
+
+Both verify ok, same storeId, 11 sessions each; ten are byte-identical and only `dd4e2186` differs
+(PC 10.946.721 B vs pendrive 9.640.095 B, because that session is still growing). The stick had
+nothing the PC lacks, so the correct outcome of that import is "nothing new" — which is what it does
+now.
 ## 0.1.0-rc.45 — 2026-11-08
 
 ### Fixed after exercising the real host
