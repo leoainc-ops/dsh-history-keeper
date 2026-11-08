@@ -182,7 +182,20 @@ El motivo es el contrato mismo: un índice almacenado sería estado duplicado qu
 desfasado de la cadena, y agregaría una escritura por captura. Derivarlo garantiza que el catálogo
 dice exactamente lo que la bóveda tiene.
 
-## 14. Fuera del contrato
+## 14. Importación automática y deshacer
+
+El host también puede traer una bóveda externa al arrancar: 
+
+- El buzón es **uno solo**: `<home>/history-keeper.incoming`. El plugin no busca discos ni
+  pendrives por su cuenta.
+- Antes de tocar nada, la bóveda del buzón debe abrir con la frase de esta máquina y **verificar**.
+- La importación es la de M2: en el lugar, reutilizando objetos, verificada al final.
+- El journal (`<home>/history-keeper.journal.json`) registra **qué archivos de sesión se crearon** y
+  hasta cuándo se pueden retirar: 7 días o el primer export. Deshacer quita sólo eso; la historia
+  de la bóveda no se borra.
+- Una importación fallida nunca impide que el host arranque: se informa y se sigue.
+
+## 15. Fuera del contrato
 
 - Reconstruir o fusionar logs de sesión.
 - Interpretar eventos del host (sólo se cuenta frames para los rangos).

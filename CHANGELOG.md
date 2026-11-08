@@ -20,6 +20,29 @@ usable but the host APIs it binds to are still moving.
 - docs/CASES.md: the 26 situations the plugin covers, by role (backup, transport, convergence,
   recovery), with the 18 covered, the 5 conditional and the 3 gaps, and where the gaps concentrate.
 
+## 0.1.0-rc.42 — 2026-11-07
+
+### M5 — import at start, with an undo
+
+- **A drop box, not a magic folder.** Copy a carried vault into `<home>/history-keeper.incoming`
+  (or `keeper import --stage F:\keeper-transfer`, which verifies it and leaves it there) and open
+  DSH: the plugin imports it at mount.
+- **The import is the M2 one**: merged in place, existing chunks referenced instead of re-sealed,
+  verified before and after, nothing left behind except the merged history.
+- **It never throws at start.** A vault that does not open with this machine's passphrase, does not
+  verify, or is newer than the plugin is reported and skipped; the host starts anyway.
+- **Undo, for what was shown, not for the history.** The import journals the exact session files it
+  created; `keeper import --undo` removes those and nothing else, and refuses after the window
+  closes: **7 days, or the first `keeper export`** (an export means the work travels on, so undoing
+  locally would only hide it). The vault keeps the merged history; the journal is about the host.
+- **`/keeper import [ruta]`** does the same from the conversation, staging an explicit path first.
+- After an automatic import the plugin says how many conversations entered and that DSH must be
+  reopened to see them: session files are read at start, so the notice is the honest part.
+
+### Why the drop box
+
+The plugin cannot know which pendrive is mounted, and a plugin that scans disks is a plugin that
+imports the wrong thing. One path, verified, moved aside when used.
 ## 0.1.0-rc.41 — 2026-11-07
 
 ### M4 — plaintext extraction

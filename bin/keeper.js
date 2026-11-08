@@ -23,6 +23,7 @@ import { importVault } from '../lib/import.js'
 import { buildCatalog } from '../lib/catalog.js'
 import { extractSession } from '../lib/extract.js'
 import { checkCompatibility, describeCompatibility } from '../lib/handshake.js'
+import { closeUndoWindow, stageIncoming, undoImport } from '../lib/autoimport.js'
 import { assertHostClosed } from '../lib/hostguard.js'
 import { PLUGIN_VERSION } from '../lib/version.js'
 import { resolvePaths } from '../lib/paths.js'
@@ -49,7 +50,7 @@ commands
   catalog    every conversation in the vault, organized by workspace, turns and dates
   extract    write one conversation as readable text or as its JSONL, outside the vault
   export     verify the vault and copy it to a pendrive (refuses to overwrite newer content), with a receipt
-  import     verify a carried vault, merge it, and (with --swap) make it the local one
+  import     verify a carried vault and bring it in place (--stage for the next start, --undo to take it back)
   verify     check every object, hash and chain
   status     what the store holds and what is unpublished
   restore    rebuild a DSH home from the store
@@ -114,7 +115,7 @@ function parse(argv) {
       inline = key.slice(eq + 1)
       key = key.slice(0, eq)
     }
-    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight' || key === 'swap' || key === 'allow-host-open' || key === 'keep-replaced' || key === 'replace' || key === 'jsonl' || key === 'no-reasoning') {
+    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight' || key === 'swap' || key === 'allow-host-open' || key === 'keep-replaced' || key === 'replace' || key === 'jsonl' || key === 'no-reasoning' || key === 'undo') {
       options[key] = true
       continue
     }
@@ -507,6 +508,48 @@ function main() {
   }
 
   if (command === 'import') {
+    // M5: take back what an automatic import showed, or leave a vault for the next start.
+    if (options.undo === true) {
+      const report = undoImport({ home, dryRun: options['dry-run'] === true })
+      const lines = [
+        'import --undo' + (report.dryRun ? '  (dry run)' : ''),
+      ]
+      if (report.status === 'refused') {
+        lines.push('  nothing to undo: ' + report.reason)
+        print(report, options, lines.join("\n"))
+        return
+      }
+      lines.push('  removed: ' + report.removed.length + '  already gone: ' + report.missing.length + '  refused: ' + report.refused.length)
+      for (const item of report.removed) lines.push("    - " + item.sessionId)
+      for (const item of report.refused) lines.push("    ! " + item.sessionId + "  " + item.reason)
+      lines.push('  the vault keeps the history; this only removes what was shown on this machine')
+      print(report, options, lines.join("\n"))
+      return
+    }
+    if (options.stage) {
+      const stageRoot = path.resolve(options.stage)
+      let stageKey = options['stick-key'] ?? null
+      if (!stageKey) {
+        const keyDir = path.join(stageRoot, 'key')
+        if (fs.existsSync(keyDir)) {
+          const files = fs.readdirSync(keyDir).filter((name) => !name.startsWith('.'))
+          if (files.length === 1) stageKey = path.join(keyDir, files[0])
+        }
+      }
+      if (!stageKey) fail('import --stage needs --stick-key <passphrase file for the carried vault>')
+      const stagePass = readPassphraseFile(stageKey)
+      if (!stagePass.passphrase) fail('cannot read the passphrase of the carried vault: ' + stagePass.reason)
+      const source = path.join(stageRoot, "vault")
+      const report = stageIncoming({ home, from: fs.existsSync(source) ? source : stageRoot, passphrase: stagePass.passphrase })
+      print(report, options, [
+        'import --stage',
+        '  staged:   ' + report.incoming,
+        '  vault:    ' + report.storeId + '  ' + report.sessions + ' session(s)  ' + humanBytes(report.bytes),
+        '  next:     open DSH; the plugin imports it at start',
+      ].join("\n"))
+      return
+    }
+
     const from = options.from
     if (!from) fail('import needs --from <directory on the pendrive created by keeper export>')
     const stickRoot = path.resolve(from)
@@ -605,7 +648,8 @@ function main() {
       report.keyFingerprint ? '  key fingerprint: ' + report.keyFingerprint + '  (the passphrase itself did not travel)' : '  key fingerprint: not computed',
     ]
     if (report.warning) lines.push('  ! ' + report.warning)
-    print(report, options, lines.join('\n'))
+        closeUndoWindow(home, 'export', new Date().toISOString())
+print(report, options, lines.join('\n'))
     if (!report.verified.ok) process.exit(1)
     return
   }
