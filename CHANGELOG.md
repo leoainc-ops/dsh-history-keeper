@@ -20,6 +20,27 @@ usable but the host APIs it binds to are still moving.
 - docs/CASES.md: the 26 situations the plugin covers, by role (backup, transport, convergence,
   recovery), with the 18 covered, the 5 conditional and the 3 gaps, and where the gaps concentrate.
 
+## 0.1.0-rc.43 — 2026-11-08
+
+### The vault catches up with the plugin
+
+- **`keeper upgrade`** (and **`/keeper upgrade`**) adds what an older vault does not declare:
+  `writer`, `minReader` (the M3 handshake) and `retention` (the M1 space policy). It records the
+  upgrade in `meta.upgrades` with the previous values, and leaves a one-file rollback
+  (`meta.json.before-upgrade-<stamp>`).
+- **History is untouched.** No object is written or removed, no manifest is rewritten, no head
+  moves; the test asserts the object count and the verified bytes are identical before and after.
+  A vault that does not verify after the change gets its previous `meta.json` back.
+- `--dry-run` reports the plan without writing, and `--no-retention` lets the operator adopt the
+  handshake without silently changing the space policy.
+- The upgrade refuses a vault that asks for a newer format, and is a no-op on a vault that is
+  already current.
+
+### Why this is a separate command
+
+Writing the description of a vault is not the same as writing its history. Keeping them apart means
+the upgrade can never be the thing that damages a vault, and the operator can see exactly what
+changed (three fields, listed).
 ## 0.1.0-rc.42 — 2026-11-07
 
 ### M5 — import at start, with an undo

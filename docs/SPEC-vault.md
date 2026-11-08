@@ -195,7 +195,17 @@ El host también puede traer una bóveda externa al arrancar:
   de la bóveda no se borra.
 - Una importación fallida nunca impide que el host arranque: se informa y se sigue.
 
-## 15. Fuera del contrato
+## 15. Actualización de una bóveda anterior
+
+Una bóveda escrita antes del handshake sigue siendo válida: el formato es aditivo. Para que declare
+lo que este build sabe, existe `keeper upgrade`:`n
+- agrega `writer`, `minReader` y (salvo `--no-retention`) `retention` a `meta.json`;
+- registra el cambio en `meta.upgrades` con los valores anteriores;
+- **no toca la historia**: ni un objeto, ni un manifiesto, ni una cabeza;
+- deja `meta.json.before-upgrade-<sello>` para volver atrás con un archivo;
+- se niega si la bóveda pide un formato más nuevo, y no hace nada si ya está al día.
+
+## 16. Fuera del contrato
 
 - Reconstruir o fusionar logs de sesión.
 - Interpretar eventos del host (sólo se cuenta frames para los rangos).

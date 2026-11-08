@@ -22,6 +22,7 @@ import { exportVault } from '../lib/export.js'
 import { importVault } from '../lib/import.js'
 import { buildCatalog } from '../lib/catalog.js'
 import { extractSession } from '../lib/extract.js'
+import { upgradeVault } from '../lib/upgrade.js'
 import { checkCompatibility, describeCompatibility } from '../lib/handshake.js'
 import { closeUndoWindow, stageIncoming, undoImport } from '../lib/autoimport.js'
 import { assertHostClosed } from '../lib/hostguard.js'
@@ -48,6 +49,7 @@ commands
   inventory  sessions grouped by the device they came from
   paths      where every keeper file lives on this machine
   catalog    every conversation in the vault, organized by workspace, turns and dates
+  upgrade    add the current handshake and retention to an older vault (history untouched)
   extract    write one conversation as readable text or as its JSONL, outside the vault
   export     verify the vault and copy it to a pendrive (refuses to overwrite newer content), with a receipt
   import     verify a carried vault and bring it in place (--stage for the next start, --undo to take it back)
@@ -115,7 +117,7 @@ function parse(argv) {
       inline = key.slice(eq + 1)
       key = key.slice(0, eq)
     }
-    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight' || key === 'swap' || key === 'allow-host-open' || key === 'keep-replaced' || key === 'replace' || key === 'jsonl' || key === 'no-reasoning' || key === 'undo') {
+    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight' || key === 'swap' || key === 'allow-host-open' || key === 'keep-replaced' || key === 'replace' || key === 'jsonl' || key === 'no-reasoning' || key === 'undo' || key === 'no-retention') {
       options[key] = true
       continue
     }
@@ -212,6 +214,7 @@ function main() {
   // this in their own block; the remaining write commands check here, once.
   const otherWrite =
     (command === 'gc' && options.yes === true) ||
+    (command === 'upgrade' && options['dry-run'] !== true) ||
     ((command === 'import' || command === 'restore' || command === 'attachments') && options['dry-run'] !== true)
   if (otherWrite) assertHostClosed(home, { allow: options['allow-host-open'] === true })
 
@@ -654,6 +657,28 @@ print(report, options, lines.join('\n'))
     return
   }
 
+  if (command === 'upgrade') {
+    const store = openFrom(options)
+    const report = upgradeVault(store, { dryRun: options['dry-run'] === true, retention: options['no-retention'] !== true })
+    const lines = [
+      'upgrade ' + store.dir + (report.status === 'planned' ? '  (dry run)' : ''),
+    ]
+    if (report.status === 'current') {
+      lines.push('  already current: it declares its writer, its minimum reader and its retention')
+    } else {
+      for (const change of report.changes) lines.push('  + ' + change)
+      if (report.status === 'upgraded') {
+        lines.push('  writer:      ' + (report.writer?.plugin ?? '?'))
+        lines.push('  minReader:   ' + (report.minReader?.plugin ?? '?'))
+        if (report.retention) lines.push('  retention:   autoGc=' + report.retention.autoGc + '  compactAfterManifests=' + report.retention.compactAfterManifests)
+        lines.push('  previous meta: ' + report.backup)
+        lines.push('  verified: ok  ' + report.verification.sessions + ' session(s)  ' + humanBytes(report.verification.bytes))
+      }
+    }
+    lines.push('  history untouched: no object, manifest or head changed')
+    print(report, options, lines.join("\n"))
+    return
+  }
   if (command === 'catalog') {
     const store = openFrom(options)
     const report = buildCatalog(store)
