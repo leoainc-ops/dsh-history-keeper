@@ -621,6 +621,7 @@ function main() {
     for (const row of report.sessions) {
       lines.push("")
       lines.push("  " + row.sessionId)
+      if (row.title) lines.push("    title      " + row.title)
       lines.push("    workspace  " + (row.workspace ?? "(none)"))
       lines.push("    " + row.turns + " turn(s)  " + row.frames + " frame(s)  " + humanBytes(row.bytes) + "  " + when(row.firstEventAt) + " .. " + when(row.lastEventAt))
       if (row.capturedBy || row.user) lines.push("    captured by " + (row.capturedBy ?? "?") + "  user " + (row.user ?? "?"))
