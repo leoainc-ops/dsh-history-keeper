@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import test from 'node:test'
 
-import { autoImport, stageIncoming, undoImport } from '../lib/autoimport.js'
+import { autoImport, resolveVaultDir, stageIncoming, undoImport } from '../lib/autoimport.js'
 import { incomingPath, readJournal } from '../lib/journal.js'
 import { snapshot } from '../lib/snapshot.js'
 import { initStore, openStore } from '../lib/store.js'
@@ -146,4 +146,23 @@ test('staging leaves a verified vault for the next start', (t) => {
 
   // The box is not a pile: a second staging is refused until it is used.
   assert.throws(() => stageIncoming({ home, from: otherDir, passphrase: PASS }), /not empty/)
+})
+
+test('a pendrive folder that contains vault/ works as --from', (t) => {
+  const setupData = setup(t)
+  const { home, root } = setupData
+  const { otherDir } = bringVault(t, setupData)
+  fs.rmSync(incomingPath(home), { recursive: true, force: true })
+
+  // The shape the operator actually has: F:\keeper-transfer\vault
+  const stick = path.join(root, 'stick')
+  fs.mkdirSync(stick, { recursive: true })
+  fs.cpSync(otherDir, path.join(stick, 'vault'), { recursive: true })
+
+  assert.equal(resolveVaultDir(stick), path.join(stick, 'vault'))
+  assert.equal(resolveVaultDir(path.join(stick, 'vault')), path.join(stick, 'vault'))
+  assert.throws(() => resolveVaultDir(path.join(root, 'nowhere')), /no vault at/)
+
+  const report = stageIncoming({ home, from: stick, passphrase: PASS })
+  assert.equal(report.status, 'staged')
 })

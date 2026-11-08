@@ -20,6 +20,37 @@ usable but the host APIs it binds to are still moving.
 - docs/CASES.md: the 26 situations the plugin covers, by role (backup, transport, convergence,
   recovery), with the 18 covered, the 5 conditional and the 3 gaps, and where the gaps concentrate.
 
+## 0.1.0-rc.45 — 2026-11-08
+
+### Fixed after exercising the real host
+
+- **`/keeper import F:\keeper-transfer` failed** with "no vault at F:\keeper-transfer": the drop-box
+  staging expected the vault directory itself, but a pendrive carries `keeper-transfer/vault`.
+  `stageIncoming` now accepts either, and says which two paths it looked at when neither exists.
+- **The plugin's help was stale**: it still listed only the original six actions and did not
+  mention `import`, `upgrade` or `undo`, nor where the drop box is. It now lists them.
+- **`--swap` is gone.** It had done nothing since M1 (the import is in place) but was still accepted,
+  and the launcher scripts still passed it; `recibir.ps1` and `vigia-montar.ps1` were updated with
+  it, so nothing passes a flag that does nothing.
+- **`init` honours `--home`.** It was hardcoded to the operator's real home, so `init --home <dir>`
+  created a vault (and generated a key file) in the wrong place. That is also how a stray
+  `~/.dsh/history-keeper.key` with a passphrase that opened nothing appeared during a test run; it
+  was removed.
+- **A key belongs to its vault.** With an explicit `--store`, the generated key is written next to
+  it (`<store>.key`), not in the home of another vault, so a command naming a store never borrows a
+  key that belongs to a different one.
+- **The argument parser no longer confuses "no inline value" with "the value null"**, which had
+  made every `--option value` be read as an empty option.
+- **An unknown option no longer swallows the next flag.** `--old-thing --dry-run` used to make
+  `--dry-run` the value of `--old-thing`, silently disabling a dry run. An option without an
+  inline value now only takes the next token when it does not start with `--`.
+
+### Confirmed in the field
+
+`/keeper upgrade` on the real vault reported **already current**: the vault had been upgraded on
+2026-11-08 (writer `0.1.0-rc.43`, minimum reader `0.1.0-rc.43`, retention with `autoGc`), and its
+history was untouched.
+
 ## 0.1.0-rc.44 — 2026-11-08
 
 ### Closing the gaps that blocked the freeze

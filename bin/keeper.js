@@ -120,11 +120,23 @@ function parse(argv) {
       inline = key.slice(eq + 1)
       key = key.slice(0, eq)
     }
-    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight' || key === 'swap' || key === 'allow-host-open' || key === 'keep-replaced' || key === 'replace' || key === 'jsonl' || key === 'raw' || key === 'no-reasoning' || key === 'undo' || key === 'no-retention') {
+    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight' || key === 'allow-host-open' || key === 'keep-replaced' || key === 'replace' || key === 'jsonl' || key === 'raw' || key === 'no-reasoning' || key === 'undo' || key === 'no-retention') {
       options[key] = true
       continue
     }
-    const value = inline ?? argv[++i]
+    // An option never swallows the next flag: `--old-thing --dry-run` must not turn the flag
+    // into the value of an option the build no longer knows. `inline` is null when the option
+    // was written without `=`, so it means "no inline value", not "the value null".
+    let value = inline === null ? undefined : inline
+    if (value === undefined) {
+      const nextArg = argv[i + 1]
+      if (nextArg !== undefined && !nextArg.startsWith('--')) {
+        i += 1
+        value = nextArg
+      } else {
+        value = true
+      }
+    }
     if (value === undefined) fail('missing value for --' + key)
     if (key === 'session') options.session.push(value)
     else if (key === 'allow-rule') options['allow-rule'] = [...(options['allow-rule'] ?? []), value]
@@ -162,10 +174,11 @@ function passphraseFrom(options, behaviour = {}) {
 
   // The key must be resolved for the SAME vault the command opens: otherwise a command given an
   // explicit --store would borrow this machine's key, open the wrong store and report a confusing
-  // "wrong passphrase" instead of "passphrase not set".
+  // "wrong passphrase" instead of "passphrase not set". When the operator names a vault, the key
+  // that belongs to it lives next to it (`<store>.key`), never in the home of another vault.
   const keyFile = path.resolve(
     options['key-file'] ??
-      resolvePaths({ home: options.home ?? defaultHome(), vault: options.store ?? null }).key,
+      (options.store ? String(options.store) + '.key' : resolvePaths({ home: options.home ?? defaultHome() }).key),
   )
   const file = readPassphraseFile(keyFile)
   if (file.passphrase) return { passphrase: file.passphrase, source: 'key file ' + keyFile, generated: null }
@@ -222,7 +235,7 @@ function main() {
   if (otherWrite) assertHostClosed(home, { allow: options['allow-host-open'] === true })
 
   if (command === 'init') {
-    const store = options.store ?? path.join(os.homedir(), '.dsh', 'history-keeper')
+    const store = resolvePaths({ home: options.home ?? defaultHome(), vault: options.store ?? null }).vault
     const pass = passphraseFrom(options, { allowGenerate: true })
     const created = initStore(path.resolve(store), {
       passphrase: pass.passphrase,

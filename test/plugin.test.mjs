@@ -38,7 +38,7 @@ function makeRow(overrides = {}) {
     cwd: 'C:\\work\\plugin',
     log: makeLog({ id: 'session-plugin', cwd: 'C:\\work\\plugin', batches: [[{ type: 'turn/start' }], [{ type: 'turn/end' }]] }),
   })
-  return { root, home, sessionsRoot, storeDir, config: { store: storeDir, sessionsRoot, passphraseEnv: ENV, ...overrides } }
+  return { root, home, sessionsRoot, storeDir, config: { store: storeDir, sessionsRoot, passphraseEnv: ENV, keyFile: path.join(root, 'absent-key.txt'), ...overrides } }
 }
 
 async function invoke(definition, rawInput) {

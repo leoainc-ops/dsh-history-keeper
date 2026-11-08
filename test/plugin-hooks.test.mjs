@@ -38,7 +38,7 @@ function makeRow(overrides = {}) {
     log: makeLog({ id: 'session-hooks', cwd: 'C:\\work\\hooks', batches: [[{ type: 'turn/start' }]] }),
   })
   initStore(storeDir, { passphrase: PASS, deviceName: 'hooks-test' })
-  return { root, sessionsRoot, storeDir, config: { store: storeDir, sessionsRoot, passphraseEnv: ENV, ...overrides } }
+  return { root, sessionsRoot, storeDir, config: { store: storeDir, sessionsRoot, passphraseEnv: ENV, keyFile: path.join(root, 'absent-key.txt'), ...overrides } }
 }
 
 test.beforeEach(() => {
