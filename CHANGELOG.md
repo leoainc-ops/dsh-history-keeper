@@ -20,6 +20,31 @@ usable but the host APIs it binds to are still moving.
 - docs/CASES.md: the 26 situations the plugin covers, by role (backup, transport, convergence,
   recovery), with the 18 covered, the 5 conditional and the 3 gaps, and where the gaps concentrate.
 
+## 0.1.0-rc.40 — 2026-11-07
+
+### M3 — format v1 and the version handshake
+
+- **The vault says what it is.** `meta.writer` records the plugin that wrote it, and
+  `meta.minReader` the oldest reader that can open it. New vaults declare both; older vaults are
+  still read (the field is additive and absent means "unknown").
+- **A reader checks before trusting.** `checkCompatibility` refuses a vault whose format is newer
+  than this build (`FORMAT_TOO_NEW`) and warns, without refusing, when the vault wants a newer
+  plugin (`PLUGIN_OUTDATED`). The CLI applies it on every command that opens a vault; the plugin
+  warns once at mount.
+- **`keeper catalog`**: every conversation organized by workspace, turns, frame and byte count,
+  first and last event, captured-by, user, origin and archived continuations. It is **derived**
+  from the chain, never stored: no duplicated state, no extra write per capture, and it cannot
+  drift from what the vault holds.
+- **`export --downlevel <version>`**: declares a copy readable by an older plugin. It refuses when
+  the vault already requires something newer than the target, and records `downlevel`
+  (`from`, `to`, `at`) in the copy's meta so the provenance is not lost.
+- Capture records `capturedBy` (plugin version) and `user` per session, which is what makes the
+  catalog answer "who wrote this, and for whom".
+
+### Spec
+
+`docs/SPEC-vault.md` documents `writer`, `minReader`, `retention`, the `gc`/archive rule and the
+write rules (compare-and-swap, host marker). The catalog is described as derived, not stored.
 ## 0.1.0-rc.39 — 2026-11-07
 
 ### M2 — a reliable writer

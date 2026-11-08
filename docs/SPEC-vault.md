@@ -158,7 +158,31 @@ contrato si:
 
 `npm run conformance` corre esos cinco puntos.
 
-## 12. Fuera del contrato
+## 12. Extensiones
+
+El formato crece por **extensiones aditivas**, nunca por cambios incompatibles:
+
+- Un campo nuevo en `meta`, en un manifiesto o en una entrada de sesión es opcional: un lector que
+  no lo conoce lo **ignora**; un escritor no lo borra si no lo entiende.
+- Las extensiones de terceros van bajo un **espacio de nombres**: `x-<vendor>-<nombre>` en el nivel
+  donde se agreguen, o anidadas en `ext: { "<vendor>": { ... } }`. Nunca se usa un nombre genérico
+  que pueda chocar con el formato.
+- Un cambio que **rompe** la lectura (reordenar, reinterpretar o eliminar campos existentes) exige
+  una versión mayor del formato (`store/2`) y que la bóveda lo declare en `minReader.format`.
+- El lector que encuentra una versión mayor que la suya **se niega** con `FORMAT_TOO_NEW`; no
+  intenta adivinar.
+
+## 13. Catálogo (derivado, no almacenado)
+
+El catálogo —qué sesiones hay, en qué workspace, con cuántos turnos, desde y hasta cuándo, quién las
+capturó y qué continuaciones están archivadas— **no se guarda**: se deriva de la cadena y de los
+bytes que escribió el host (`keeper catalog`).
+
+El motivo es el contrato mismo: un índice almacenado sería estado duplicado que puede quedar
+desfasado de la cadena, y agregaría una escritura por captura. Derivarlo garantiza que el catálogo
+dice exactamente lo que la bóveda tiene.
+
+## 14. Fuera del contrato
 
 - Reconstruir o fusionar logs de sesión.
 - Interpretar eventos del host (sólo se cuenta frames para los rangos).

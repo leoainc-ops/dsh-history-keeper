@@ -20,7 +20,10 @@ import { collectGarbage, compact } from '../lib/compact.js'
 import { inventory } from '../lib/inventory.js'
 import { exportVault } from '../lib/export.js'
 import { importVault } from '../lib/import.js'
+import { buildCatalog } from '../lib/catalog.js'
+import { checkCompatibility, describeCompatibility } from '../lib/handshake.js'
 import { assertHostClosed } from '../lib/hostguard.js'
+import { PLUGIN_VERSION } from '../lib/version.js'
 import { resolvePaths } from '../lib/paths.js'
 import { mergeStores } from '../lib/merge.js'
 import { resolveDevice } from '../lib/device.js'
@@ -42,6 +45,7 @@ commands
   merge      combine two vaults into a new one (sources untouched)
   inventory  sessions grouped by the device they came from
   paths      where every keeper file lives on this machine
+  catalog    every conversation in the vault, organized by workspace, turns and dates
   export     verify the vault and copy it to a pendrive (refuses to overwrite newer content), with a receipt
   import     verify a carried vault, merge it, and (with --swap) make it the local one
   verify     check every object, hash and chain
@@ -63,6 +67,7 @@ export options
   --to <dir>               destination on the pendrive
   --replace                overwrite a destination that holds unknown or newer content
   --keep-replaced          keep the previous copy as vault.replaced-<timestamp>
+  --downlevel <version>    declare the copy readable by this older plugin version
 
 snapshot options
   --session <id>           limit to one session (repeatable)
@@ -160,6 +165,14 @@ function passphraseFrom(options, behaviour = {}) {
 }
 
 function openFrom(options) {
+  const store = openStoreWithLayout(options)
+  const compat = checkCompatibility(store.meta, PLUGIN_VERSION)
+  if (!compat.ok) fail(describeCompatibility(compat).join(' | '), 1)
+  for (const line of describeCompatibility(compat)) console.error('keeper: ' + line)
+  return store
+}
+
+function openStoreWithLayout(options) {
   // The canonical layout decides when no flag is given, so the CLI, the plugin and the operator
   // scripts resolve the same vault and key (lib/paths.js is the single source of truth).
   const layout = resolvePaths({
@@ -542,6 +555,7 @@ function main() {
       to: path.resolve(to),
       keyFile: options['key-file'] ?? layout.key,
       pluginVersion,
+      downlevel: options.downlevel ?? null,
       keepReplaced: options['keep-replaced'] === true,
       replace: options.replace === true,
     })
@@ -560,6 +574,28 @@ function main() {
     return
   }
 
+  if (command === 'catalog') {
+    const store = openFrom(options)
+    const report = buildCatalog(store)
+    const when = (value) => (value ? value.slice(0, 16).replace("T", " ") : "?")
+    const lines = [
+      "catalog of " + store.dir,
+      "  format " + report.store.format + "  writer " + (report.store.writer?.plugin ?? "?") + "  minimum reader " + (report.store.minReader?.plugin ?? "?"),
+    ]
+    for (const row of report.sessions) {
+      lines.push("")
+      lines.push("  " + row.sessionId)
+      lines.push("    workspace  " + (row.workspace ?? "(none)"))
+      lines.push("    " + row.turns + " turn(s)  " + row.frames + " frame(s)  " + humanBytes(row.bytes) + "  " + when(row.firstEventAt) + " .. " + when(row.lastEventAt))
+      if (row.capturedBy || row.user) lines.push("    captured by " + (row.capturedBy ?? "?") + "  user " + (row.user ?? "?"))
+      if (row.origin) lines.push("    origin " + (row.origin.deviceName ?? row.origin.deviceId ?? "?"))
+      for (const item of row.archived) lines.push("    archived   " + item.turns + " turn(s)  " + humanBytes(item.bytes) + "  " + when(item.lastEventAt))
+    }
+    lines.push("")
+    lines.push("  sessions " + report.totals.sessions + "   archived " + report.totals.archived + "   turns " + report.totals.turns + "   " + humanBytes(report.totals.bytes) + "   attachments " + report.totals.attachments)
+    print(report, options, lines.join("\n"))
+    return
+  }
   if (command === 'status') {
     const store = openFrom(options)
     const chain = readAllManifests(store)
