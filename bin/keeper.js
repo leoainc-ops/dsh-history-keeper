@@ -23,6 +23,7 @@ import { importVault } from '../lib/import.js'
 import { buildCatalog } from '../lib/catalog.js'
 import { extractSession } from '../lib/extract.js'
 import { upgradeVault } from '../lib/upgrade.js'
+import { conformVault } from '../lib/conform.js'
 import { checkCompatibility, describeCompatibility } from '../lib/handshake.js'
 import { closeUndoWindow, stageIncoming, undoImport } from '../lib/autoimport.js'
 import { assertHostClosed } from '../lib/hostguard.js'
@@ -50,6 +51,7 @@ commands
   paths      where every keeper file lives on this machine
   catalog    every conversation in the vault, organized by workspace, turns and dates
   upgrade    add the current handshake and retention to an older vault (history untouched)
+  conform    validate this vault against the contract (verify, restore byte-exact, refuse newer)
   extract    write one conversation as readable text or as its JSONL, outside the vault
   export     verify the vault and copy it to a pendrive (refuses to overwrite newer content), with a receipt
   import     verify a carried vault and bring it in place (--stage for the next start, --undo to take it back)
@@ -78,6 +80,7 @@ extract options
   --session <id>           the conversation to extract
   --out <file>             where to write the plaintext (required, never overwritten)
   --jsonl                  write the decompressed log instead of the transcript
+  --raw                    write the exact session file (.jsonl.zstd), ready to restore
   --no-reasoning           leave the model reasoning out of the transcript
   --max-tool-chars <n>     truncate tool output at n characters (default 2000)
 
@@ -117,7 +120,7 @@ function parse(argv) {
       inline = key.slice(eq + 1)
       key = key.slice(0, eq)
     }
-    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight' || key === 'swap' || key === 'allow-host-open' || key === 'keep-replaced' || key === 'replace' || key === 'jsonl' || key === 'no-reasoning' || key === 'undo' || key === 'no-retention') {
+    if (key === 'json' || key === 'dry-run' || key === 'force' || key === 'no-secret-scan' || key === 'no-attachments' || key === 'entropy' || key === 'yes' || key === 'no-preflight' || key === 'swap' || key === 'allow-host-open' || key === 'keep-replaced' || key === 'replace' || key === 'jsonl' || key === 'raw' || key === 'no-reasoning' || key === 'undo' || key === 'no-retention') {
       options[key] = true
       continue
     }
@@ -295,7 +298,7 @@ function main() {
     const sessionId = options.session && options.session.length > 0 ? options.session[0] : null
     if (!sessionId) fail('extract needs --session <id>')
     const store = openFrom(options)
-    const format = options.jsonl === true ? 'jsonl' : 'readable'
+    const format = options.raw === true ? 'raw' : options.jsonl === true ? 'jsonl' : 'readable'
     const report = extractSession(store, {
       sessionId,
       out: options.out,
@@ -657,6 +660,20 @@ print(report, options, lines.join('\n'))
     return
   }
 
+  if (command === 'conform') {
+    const store = openFrom(options)
+    const pass = passphraseFrom(options)
+    const report = conformVault(store, { passphrase: pass.passphrase })
+    const lines = [
+      'conform ' + (report.ok ? 'ok' : 'PROBLEMS') + '  ' + store.dir,
+    ]
+    for (const item of report.checks) lines.push('  ' + (item.ok ? 'ok   ' : 'FAIL ') + item.name + (item.detail ? '  — ' + item.detail : ''))
+    for (const warning of report.warnings) lines.push('  warn ' + warning)
+    lines.push('  reader: ' + report.reader.plugin + '  format ' + report.reader.format)
+    print(report, options, lines.join("\n"))
+    process.exitCode = report.ok ? 0 : 1
+    return
+  }
   if (command === 'upgrade') {
     const store = openFrom(options)
     const report = upgradeVault(store, { dryRun: options['dry-run'] === true, retention: options['no-retention'] !== true })

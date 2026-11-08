@@ -14,7 +14,10 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { buildCatalog } from '../lib/catalog.js'
+import { checkCompatibility } from '../lib/handshake.js'
 import { openStore } from '../lib/store.js'
+import { PLUGIN_VERSION } from '../lib/version.js'
 import { sha256 } from '../lib/util.js'
 import { verifyStore } from '../lib/verify.js'
 import { restore } from '../lib/restore.js'
@@ -101,6 +104,20 @@ try {
   refused = true
 }
 check('refuses a wrong passphrase', refused)
+
+
+// 6. the catalog describes what the vault holds, including the final hash of each session
+const catalog = buildCatalog(store)
+check("catalog lists every session", catalog.sessions.length === expected.sessions.length, String(catalog.sessions.length))
+for (const session of expected.sessions) {
+  const row = catalog.sessions.find((item) => item.sessionId === session.sessionId)
+  check("catalog reports " + session.sessionId + " hash", Boolean(row) && row.sha256 === session.sha256)
+}
+
+// 7. a vault that asks for a newer format is refused, with a code
+const newer = { ...store.meta, minReader: { format: "dsh-history-keeper/store/9000", plugin: "99.0.0" } }
+const compat = checkCompatibility(newer, PLUGIN_VERSION)
+check("refuses a newer format with FORMAT_TOO_NEW", compat.ok === false && compat.errors.some((item) => item.code === "FORMAT_TOO_NEW"))
 
 if (failures > 0) {
   console.log('\n' + failures + ' check(s) failed: this implementation does not conform to store/1')

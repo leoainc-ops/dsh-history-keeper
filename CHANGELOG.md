@@ -20,6 +20,31 @@ usable but the host APIs it binds to are still moving.
 - docs/CASES.md: the 26 situations the plugin covers, by role (backup, transport, convergence,
   recovery), with the 18 covered, the 5 conditional and the 3 gaps, and where the gaps concentrate.
 
+## 0.1.0-rc.44 — 2026-11-08
+
+### Closing the gaps that blocked the freeze
+
+- **`keeper conform`**: validates *any* vault against the contract, not just the reference one:
+  the format is one this build speaks, the reader can open it, a vault that asks for a newer format
+  is refused with `FORMAT_TOO_NEW`, `verify` is ok, every session restores **byte for byte** into a
+  temporary home, and a wrong passphrase is refused. It never writes to the vault.
+- **The catalog reports the hash of each session** (`sha256`, the same value the restore check
+  uses) and names the **host contract**: `dsh session log`, format version vN. Decision recorded:
+  the DSH *app* version is not visible to a plugin, so "host" in the catalog means the host's data
+  contract — the part the vault actually has to carry.
+- **Conformance grew two checks**: the catalog must list every session with its hash, and a vault
+  that demands a newer format must be refused with the code. The golden vault stays `store/1`.
+- **`extract --raw`** writes the exact session file (`.jsonl.zstd`), which is what "faithful and
+  reimportable" means; the secret gate decompresses it to inspect what it contains, so choosing
+  raw does not bypass it.
+- **`/keeper undo`** takes back what the last automatic import showed, from the conversation.
+
+### Recorded amendments
+
+- M4 shipped as `keeper extract` (not `export --jsonl/--readable`), and the render is **derived**,
+  not stored encrypted: no duplicated state, no extra write per capture.
+- M5's journal records the **session files created**, not "the previous vault": the swap it
+  referred to was removed by M1.
 ## 0.1.0-rc.43 — 2026-11-08
 
 ### The vault catches up with the plugin
