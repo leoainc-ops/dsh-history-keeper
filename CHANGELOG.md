@@ -7,6 +7,44 @@ All notable changes to this project are documented here. The format follows
 During the preview, the `latest` npm tag points at a pre-release on purpose: the plugin is
 usable but the host APIs it binds to are still moving.
 
+## 1.0.0 — 2026-11-09
+
+The first stable version. What follows is what 1.0 promises, and what it does not.
+
+### The promise
+
+- **The vault is the product.** `docs/SPEC-vault.md` defines the format `store/1` as a norm: any
+  implementation that opens a reference vault, verifies it, restores its sessions byte for byte,
+  detects a tampered object and refuses a wrong passphrase is conforming. The kit is
+  `conformance/`; the command is `keeper conform`.
+- **History is never rewritten.** Capture is append-only; merging appends only the bytes a session
+  lacks; an upgrade changes the vault's description, never its objects; nothing is synthesized.
+- **It does not duplicate.** Measured on the real vault: 16,91 MiB for 15,97 MiB of unique sessions
+  (ratio 1,059, limit 1,1), and 0 unreferenced objects after maintenance.
+- **It travels without side effects.** Export verifies the copy and writes a receipt with the key's
+  fingerprint; import verifies the carried vault before touching anything, merges in place, verifies
+  the result, restores what the host lacks, and offers an undo window (7 days or the first export).
+- **One writer at a time.** With DSH open the plugin writes and the CLI refuses; with DSH closed the
+  CLI maintains and the plugin is not running.
+- **Nothing is silent.** Every failure has a code: `HASH_MISMATCH`, `MISSING_OBJECT`, `SEQ_GAP`,
+  `BYTE_GAP`, `FORMAT_TOO_NEW`, `HEAD_MOVED`, `STORE_BUSY`.
+
+### Compatibility
+
+`store/1`, reader `1.0.0`. Tested in `docs/COMPATIBILITY.md`: a vault written by this version is
+verified and restored byte for byte by `0.1.0-rc.38`; this version refuses a vault that declares a
+newer format. Only one host build (`0.2.2-rc.1`) was available for testing, and that axis is
+recorded as not covered.
+
+### What 1.0 does not do
+
+Live sync between machines, device pairing and revocation, a host UI, adapters for other hosts, and
+changing the encryption or the passphrase. See `docs/ROADMAP-1.0.md`.
+
+### After 1.0
+
+See the section above: interactive `/keeper init` through the host's credential API is the next
+candidate, and it is not part of this release.
 ## After 1.0 (not in this release)
 
 - **Interactive `/keeper init`**: ask for the passphrase through the host (`ctx.userQuestions`) and

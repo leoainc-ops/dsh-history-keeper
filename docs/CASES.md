@@ -47,6 +47,21 @@ Estados:
 | B18 | Perder la frase | — | ❌ por diseño: no hay recuperación |
 | B19 | Varias bóvedas por usuario (una por proyecto) | — | ⚠️ posible con `--store`, sin catálogo que las reúna |
 
+## B.3 Viaje y convergencia (actualizado 2026-11-09)
+
+Los casos de transporte cambiaron con la importación en el lugar, el buzón y el deshacer:
+
+| Situación | Cubierto | Cómo |
+|---|---|---|
+| Llevar la bóveda a otra PC | sí | `keeper export` verifica la copia y deja un recibo con la huella de la clave |
+| Traer la bóveda de otra PC | sí | `keeper import` la verifica antes de tocar nada, fusiona en el lugar y verifica el resultado |
+| No querer importar en ese momento | sí | `keeper import --stage` deja la bóveda en el buzón; el próximo arranque la importa |
+| Haber mostrado sesiones que no querías | sí | `keeper import --undo` retira esos archivos (7 días, o hasta el primer export) |
+| Un intento de import falla | sí | la bóveda se restaura y la copia se aparta como `.failed-<sello>` |
+| El pendrive trae algo dañado | sí | el import se niega con el código (`HASH_MISMATCH`) y no escribe nada |
+| Dos máquinas continúan la misma sesión | sí | gana el linaje del dueño; el otro se archiva y se informa |
+| Sincronización en vivo entre máquinas | **no** | fuera de alcance de la 1.0, por decisión |
+
 ## Resumen por rol
 
 | Rol | Casos | Cobertura |

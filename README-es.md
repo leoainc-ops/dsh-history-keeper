@@ -4,7 +4,7 @@
 
 *English: [README.md](README.md)*
 
-> **Estado: `0.1.0-rc.47`, pre-release.** El motor, el plugin del host y el transporte funcionan y
+> **Estado: `1.0.0`.** El motor, el plugin del host y el transporte funcionan y
 > están validados sobre sesiones reales: captura, verificación, restauración byte por byte,
 > exportación/importación con buzón y ventana de deshacer, handshake de versión, catálogo,
 > extracción a texto plano (legible, JSONL, raw) y conformidad para cualquier bóveda. La
@@ -144,6 +144,19 @@ npm run guard                   # rechaza logs de sesión commiteados
 
 Diseño y hoja de ruta: [`docs/`](docs/). Historial de versiones, incluidas las que nunca se
 publicaron y por qué: [CHANGELOG.md](CHANGELOG.md).
+
+## Documentación
+
+| Documento | Qué responde |
+|---|---|
+| [`docs/CLI.md`](docs/CLI.md) | cada comando, sus opciones y cuáles necesitan DSH cerrado |
+| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | el ciclo diario, el mantenimiento y qué hacer ante cada fallo |
+| [`docs/TRANSFER.md`](docs/TRANSFER.md) | cómo viaja la bóveda: exportación, buzón, importación, deshacer |
+| [`docs/SPEC-vault.md`](docs/SPEC-vault.md) | el formato, como norma, y qué no garantiza |
+| [`docs/HISTORY.md`](docs/HISTORY.md) | una fila por versión publicada, con su estado |
+| [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) | las combinaciones probadas y lo que no se cubrió |
+| [`SECURITY.md`](SECURITY.md) | cómo reportar una vulnerabilidad |
+| [`CHANGELOG.md`](CHANGELOG.md) | el registro completo, incluidas las versiones retiradas |
 
 ## Licencias
 
