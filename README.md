@@ -4,7 +4,7 @@
 
 *Español: [README-es.md](README-es.md)*
 
-> **Status: `1.0.0`.** The engine, the host plugin and the transport work and
+> **Status: `1.0.x`, stable.** The engine, the host plugin and the transport work and
 > are validated against real sessions: capture, verify, byte-exact restore, export/import with a
 > drop box and an undo window, version handshake, catalog, plaintext extraction (readable, JSONL,
 > raw) and conformance checks for any vault. Live sync between machines, device pairing and a host

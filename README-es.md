@@ -4,7 +4,7 @@
 
 *English: [README.md](README.md)*
 
-> **Estado: `1.0.0`.** El motor, el plugin del host y el transporte funcionan y
+> **Estado: `1.0.x`, estable.** El motor, el plugin del host y el transporte funcionan y
 > están validados sobre sesiones reales: captura, verificación, restauración byte por byte,
 > exportación/importación con buzón y ventana de deshacer, handshake de versión, catálogo,
 > extracción a texto plano (legible, JSONL, raw) y conformidad para cualquier bóveda. La
