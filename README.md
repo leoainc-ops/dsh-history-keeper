@@ -4,9 +4,11 @@
 
 *Español: [README-es.md](README-es.md)*
 
-> **Status: pre-alpha (0.1.0 in progress).** The engine works: `snapshot`, `verify` and
-> `restore` run on real DSH logs, validated byte for byte on 8 sessions. Host plugin
-> integration and live sync are the next milestones.
+> **Status: `0.1.0-rc.47`, pre-release.** The engine, the host plugin and the transport work and
+> are validated against real sessions: capture, verify, byte-exact restore, export/import with a
+> drop box and an undo window, version handshake, catalog, plaintext extraction (readable, JSONL,
+> raw) and conformance checks for any vault. Live sync between machines, device pairing and a host
+> UI are **out of scope for 1.0** by decision, not pending work.
 
 ## The problem
 
@@ -144,7 +146,7 @@ dsh plugin --profile web add dsh-history-keeper
 
 ## Compatibility
 
-Developed against DeepSeek Harness `0.2.0-rc.2`. The bundle declares
+Developed and tested against DeepSeek Harness `0.2.2-rc.1`. The bundle declares
 `engines.dsh` so an incompatible host refuses it instead of misbehaving.
 
 ## Development

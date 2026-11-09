@@ -422,7 +422,7 @@ completo.
 
 Hipótesis a descartar, en orden:
 
-1. el `cwd` de la sesión apunta a un proyecto que **no existe** en pc-b (por ejemplo `G:\Mi unidad\…`);
+1. el `cwd` de la sesión apunta a un proyecto que **no existe** en pc-b (por ejemplo una carpeta de una unidad sincronizada);
 2. la **caché de proyectos** (`storages/session_projcache`) no conoce las sesiones restauradas y la vista queda vacía hasta que DSH la reconstruya;
 3. la sesión restaurada tiene pocos frames o una cola incompleta (revisar `frames` y el último frame);
 4. **versión de DSH distinta** entre las dos máquinas (formato de sesión).
@@ -560,7 +560,7 @@ Antes de mover historial entre máquinas, comparar versiones de DSH. Si la de or
 
 ### 12.1 Agrupar las historias por equipo de origen
 
-**Pedido**: las sesiones importadas deben ordenarse por equipo de origen (`obras26` = pc-b) en
+**Pedido**: las sesiones importadas deben ordenarse por equipo de origen (el `deviceName` del manifiesto) en
 lugar de caer todas en "Ungrouped". El origen se conoce: cada manifiesto lleva el dispositivo que
 publicó la sesión, y el store tiene una cabeza por dispositivo. Debe funcionar con **más de dos
 equipos**, no sólo dos.
@@ -572,7 +572,7 @@ por dispositivo. Un plugin **no puede renombrar "Ungrouped"**. Entonces hay tres
 |---|---|---|
 | **A. Vista propia** — `keeper status --by-device` y `keeper inventory` | lista las sesiones agrupadas por equipo de origen, con tamaño y proyecto | sólo nuestro código: el dato ya está en la bóveda |
 | **B. Workspaces sincronizados** (C.5) | la sesión aparece bajo un workspace real, no en "Ungrouped" | sincronizar la tabla de workspaces; si la carpeta no existe, el workspace se muestra igual |
-| **C. Pedido a DSH** | que un plugin pueda declarar **etiqueta/grupo** por sesión ("origen: obras26") | externo: necesita soporte del host |
+| **C. Pedido a DSH** | que un plugin pueda declarar **etiqueta/grupo** por sesión ("origen: pc-b") | externo: necesita soporte del host |
 
 Empezar por A (barato y útil ya), seguir con B en C.5, y registrar C como pedido al ecosistema.
 

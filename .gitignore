@@ -11,3 +11,6 @@ tmp/
 *.jsonl.zstd
 *.zst
 !test/fixtures/synthetic/**
+
+# temporary commit message file used by the release steps
+.git-commit-msg.txt

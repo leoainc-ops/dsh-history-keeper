@@ -4,9 +4,12 @@
 
 *English: [README.md](README.md)*
 
-> **Estado: pre-alfa (0.1.0 en curso).** El motor funciona: `snapshot`, `verify` y
-> `restore` operan sobre logs reales de DSH, validados byte a byte en 8 sesiones. La
-> integración con el host y el sync en vivo son los próximos hitos.
+> **Estado: `0.1.0-rc.47`, pre-release.** El motor, el plugin del host y el transporte funcionan y
+> están validados sobre sesiones reales: captura, verificación, restauración byte por byte,
+> exportación/importación con buzón y ventana de deshacer, handshake de versión, catálogo,
+> extracción a texto plano (legible, JSONL, raw) y conformidad para cualquier bóveda. La
+> sincronización en vivo, el emparejamiento de dispositivos y una UI propia están **fuera del
+> alcance de la 1.0** por decisión, no pendientes.
 
 ## El problema
 
@@ -129,7 +132,7 @@ dsh plugin --profile web add dsh-history-keeper
 
 ## Compatibilidad
 
-Desarrollado contra DeepSeek Harness `0.2.0-rc.2`. El bundle declara `engines.dsh`, así
+Desarrollado y probado contra DeepSeek Harness `0.2.2-rc.1`. El bundle declara `engines.dsh`, así
 que un host incompatible lo rechaza en lugar de comportarse mal.
 
 ## Desarrollo
