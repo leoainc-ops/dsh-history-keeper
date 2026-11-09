@@ -8,6 +8,21 @@ From `1.0.0` on, the `latest` npm tag points at a stable release. Before that, i
 pre-release on purpose: the plugin was usable but the host APIs it binds to were still moving. The
 withdrawn and deprecated versions are marked in the registry and listed in `docs/HISTORY.md`.
 
+## 1.0.1 — 2026-11-09
+
+Documentation only. The code is identical to 1.0.0.
+
+- The READMEs and the roadmap still described the project as waiting for launch: a "What it will do"
+  table promised live sync as 1.0, and the Install section said "not published yet". Both now
+  describe what 1.0 does and how to install it.
+- The CHANGELOG preamble explained why `latest` was a pre-release; that stopped being true with
+  1.0.0.
+- `docs/HISTORY.md` lists all 48 published versions and marks 1.0.x as the stable line.
+- The roadmap is marked as the closed record of the phase, with the compatibility matrix declared
+  partial (the second host version was not available) and the hygiene table updated.
+
+This release exists because the package ships its documentation: the 1.0.0 tarball contains the
+stale README, and npm shows the README from the tarball.
 ## 1.0.0 — 2026-11-09
 
 The first stable version. What follows is what 1.0 promises, and what it does not.
