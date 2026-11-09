@@ -188,6 +188,19 @@ fork, a rewrite— that passes it can read the same vault. What may differ betwe
 *philosophy* ([`docs/PHILOSOPHIES.md`](docs/PHILOSOPHIES.md)): which lineage is visible, when the
 vault travels, what is retained. The one this version ships is the conservative philosophy
 ([`docs/adr/0001-filosofia-conservadora.md`](docs/adr/0001-filosofia-conservadora.md)).
+
+## Documentation
+
+| Document | What it answers |
+|---|---|
+| [`docs/CLI.md`](docs/CLI.md) | every command, its options, and which ones need DSH closed |
+| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | the daily cycle, maintenance, and what to do when something fails |
+| [`docs/TRANSFER.md`](docs/TRANSFER.md) | how the vault travels: export, drop box, import, undo |
+| [`docs/SPEC-vault.md`](docs/SPEC-vault.md) | the format, as a norm, and what it does not guarantee |
+| [`docs/HISTORY.md`](docs/HISTORY.md) | one row per published version, with its status |
+| [`CHANGELOG.md`](CHANGELOG.md) | the full record, including the withdrawn versions and why |
+| [`docs/LESSONS.md`](docs/LESSONS.md) | the field failures that shaped the design |
+
 ## What it covers
 
 The situations the plugin covers today, by role and with the gaps named: [docs/CASES.md](docs/CASES.md).

@@ -1,243 +1,128 @@
-# CLI reference — `keeper`
+# `keeper` — command reference
 
-`keeper` works with **no DSH running and nothing but Node installed**. That is deliberate:
-the scenario this tool exists for is the one where the host is gone, so the recovery path
-cannot depend on the host, on `git`, or on any external binary.
+`keeper` is the command-line surface of the vault. The plugin inside DSH captures, compacts and
+imports on its own; the CLI is what you use for everything else: the first vault, verification,
+travel, extraction and repair.
 
-```sh
+Two rules decide when a command may run:
+
+1. **While DSH is open, the plugin is the writer.** The CLI refuses `snapshot`, `compact`, `gc --yes`,
+   `import`, `restore` and `upgrade` with a clear message. Reading commands (`verify`, `status`,
+   `catalog`, `extract`, `conform`, `doctor`, `paths`, `capabilities`) run any time.
+2. **`--allow-host-open` exists** for the case where you know the plugin is idle; it is never the
+   default.
+
+```bash
 keeper <command> --store <dir> [options]
 ```
 
-The passphrase is **never** taken from argv (it would land in shell history): it is read
-from the environment variable named by `--passphrase-env`.
+The vault lives in `~/.dsh/history-keeper` and the passphrase is read from `--key-file`,
+`~/.dsh/history-keeper.key`, or `$KEEPER_PASSPHRASE`, in that order of precedence.
 
-## Commands
+## Common options
 
-| Command | What it does | Writes? |
-|---|---|---|
-| `init` | Creates a new store: `meta.json` (store id, scrypt parameters, sealed key check, device) and an empty `objects/`. Refuses to run over an existing store. | creates the store |
-| `snapshot` | Captures the bytes that are new since the last capture: frame-aligned chunks, sealed, referenced by a new manifest. Skips sessions that are already up to date and refuses a local log that no longer contains the published history. | yes, append-only |
-| `verify` | Walks the manifest chain, then rebuilds every session chunk by chunk: hash of each sealed object, hash of each plaintext chunk, `prefixSha256`/`endSha256` linkage, byte and frame continuity, and the session header id. | **no** |
-| `status` | Store metadata, snapshot count and last snapshot, published totals, what this machine has, how much is pending, and which sessions exist in the store but not here. | **no** |
-| `restore` | Rebuilds a DSH home from the store, writing the host's own layout (`sessions/--<project>--/<sessionId>/session.vN.jsonl.zstd`). Never overwrites: identical logs are skipped, different ones are refused unless `--force`. | yes |
-| `help` | Prints usage. | no |
+| Option | Meaning |
+|---|---|
+| `--store <dir>` | the vault directory (default: `~/.dsh/history-keeper`) |
+| `--home <dir>` | the DSH home (default: `$DSH_HOME` or `~/.dsh`) |
+| `--key-file <file>` | file holding the passphrase |
+| `--passphrase-env <name>` | environment variable holding it (default `KEEPER_PASSPHRASE`) |
+| `--json` | machine-readable output |
+| `--allow-host-open` | skip the "close DSH" guard (only when the plugin is idle) |
 
-## Options
+## The vault itself
 
-| Option | Commands | Default | Meaning |
-|---|---|---|---|
-| `--store <dir>` | all except `help` | — | Store directory (the vault). |
-| `--home <dir>` | `snapshot`, `restore` | `$DSH_HOME` or `~/.dsh` | DSH home. `snapshot` reads `<home>/sessions`; `restore` writes into it. |
-| `--passphrase-env <name>` | all except `help` | `KEEPER_PASSPHRASE` | Name of the environment variable holding the passphrase (minimum 8 characters). |
-| `--key-file <path>` | all | `~/.dsh/history-keeper.key` | Single-line passphrase file. `init` writes a generated passphrase here when neither the env var nor the file provides one. |
-| `--device-name <name>` | `init` | hostname | Label stored in `meta.json`; it identifies the machine that produced the snapshots. |
-| `--session <id>` | `snapshot` | all sessions | Limit the capture to one session. Repeatable. |
-| `--max-chunk-bytes <n>` | `snapshot` | `1048576` | Target chunk size. Frames are never split, so a single large frame wins over this target. |
-| `--min-interval <ms>` | `snapshot` | `0` | Coalesce a burst of flushes for the same session: new bytes wait until the window opens. `0` publishes everything immediately. |
-| `--no-secret-scan` | `snapshot` | off | Publish even when a credential rule matches. The gate is on by default. |
-| `--allow-rule <id>` | `snapshot` | — | Disable one secret rule (repeatable), e.g. `--allow-rule secret-assignment`. |
-| `--entropy` | `snapshot` | off | Also flag long high-entropy runs. Noisy on tool output; off by default. |
-| `--no-attachments` | `snapshot` | off | Skip capturing the blobs the session references. Capture is on by default. |
-| `--dry-run` | `restore` | off | Print the plan and write nothing. |
-| `--force` | `snapshot`, `restore` | off | `snapshot`: publish inside the coalescing window, or past a quarantine. `restore`: when a different log already exists at the target, keep it and write the incoming copy alongside as `.incoming-<timestamp>`. It never overwrites. |
-| `--json` | all | off | Machine-readable output. Timestamps stay as raw ISO-8601 UTC in JSON; the human output renders them in local time. |
+| Command | What it does |
+|---|---|
+| `init` | creates the vault; generates a key file when no passphrase is set |
+| `snapshot` | captures new session bytes (`--session <id>` to limit, `--force` to ignore the throttle) |
+| `verify` | every object, hash and chain link; fails closed with codes |
+| `status` | sessions, frames, attachments, archived continuations, unpublished bytes |
+| `catalog` | every conversation by workspace, turns, dates, sizes and session hash |
+| `conform` | validates *any* vault against the contract: format, reader, verify, byte-exact restore, wrong passphrase; exit 1 when it does not conform |
+| `doctor` | what the vault consumes, what is recoverable, and what is lying around |
+| `upgrade` | adds the current handshake and retention to an older vault; history untouched |
+| `compact` | replaces the chain with one checkpoint |
+| `gc` | deletes unreferenced objects (`--yes` to actually delete) |
+| `attachments` | captures blobs referenced by already-published sessions |
+| `inventory` | sessions grouped by the device that published them |
+| `paths` | where every keeper file lives on this machine |
+| `capabilities` | version, format and commands this build knows |
 
-## Environment
+## Travel
 
-| Variable | Used by | Meaning |
-|---|---|---|
-| `KEEPER_PASSPHRASE` (or the name given to `--passphrase-env`) | all commands that open a store | The passphrase. Never logged, never stored in argv. |
-| `DSH_HOME` | `--home` default | DSH home directory. |
+```bash
+# on the machine that sends (DSH may stay open: this only reads the vault)
+keeper export --to F:\keeper-transfer
+
+# on the machine that receives (DSH closed)
+keeper import --from F:\keeper-transfer --stick-key F:\keeper-transfer\key\pc-a.txt
+
+# leave a vault for the next start instead of importing now
+keeper import --stage F:\keeper-transfer --stick-key <file>
+
+# take back what the last automatic import showed (7 days, or until the first export)
+keeper import --undo
+```
+
+| Option | Meaning |
+|---|---|
+| `--to <dir>` | destination of `export`; the vault lands in `<dir>/vault` |
+| `--replace` | overwrite a destination that holds unknown or newer content |
+| `--keep-replaced` | keep the previous copy as `vault.replaced-<stamp>` |
+| `--downlevel <version>` | declare a copy readable by that older plugin |
+| `--from <dir>` | pendrive root for `import` (a folder containing `vault/` works) |
+| `--stick-key <file>` | passphrase of the carried vault |
+| `--stage <dir>` | verify a carried vault and leave it in the drop box for the next start |
+| `--undo` | remove the session files the last automatic import created |
+| `--on-divergence owner\|error` | keep the owner's line and archive the other, or refuse |
+
+`export` verifies the copy, writes a receipt (`carry-<stamp>.json`) with the **key fingerprint**,
+never the passphrase, and refuses to overwrite a destination that holds sessions the local vault
+lacks.
+
+## Extraction (plaintext)
+
+```bash
+keeper extract --session <id> --out C:\temp\conversacion.md
+keeper extract --session <id> --out C:\temp\conversacion.jsonl --jsonl
+keeper extract --session <id> --out C:\temp\conversacion.jsonl.zstd --raw
+```
+
+| Format | Content |
+|---|---|
+| `readable` (default) | Markdown transcript: turns, messages, reasoning, tool calls and results, title |
+| `--jsonl` | the decompressed log, one event per line (faithful, comparable) |
+| `--raw` | the exact session file, ready to drop back into `sessions/` |
+
+Conditions: `--out` is required and never overwritten (`--force` to replace), the path may not be
+inside the vault or the host trees, and the **secret gate** stops the extraction unless `--force`
+when the text looks like a credential. The first line of a readable copy says it is unprotected.
+`--no-reasoning` leaves the model's reasoning out; `--max-tool-chars <n>` truncates tool output.
+
+## Repair
+
+| Situation | Command |
+|---|---|
+| the vault does not verify | `verify` → read the codes; restore a `.replaced-*` copy if one exists |
+| a destination was overwritten by mistake | the copy is at `vault.replaced-<stamp>` |
+| an import showed sessions you did not want | `keeper import --undo` |
+| the vault is bigger than the history it holds | `keeper doctor`, then `compact` + `gc --yes` with DSH closed |
+| a vault from an older build | `keeper upgrade` |
 
 ## Exit codes
 
 | Code | Meaning |
 |---|---|
-| `0` | The command completed and reported no problems. |
-| `1` | Completed but reported problems (integrity failures, refused writes, unreadable logs) — or an unexpected error. |
-| `2` | Usage or configuration: unknown command, missing value, no store, no passphrase. |
+| 0 | success |
+| 1 | the operation ran but the result is not healthy (`verify`, `conform`, `doctor`) |
+| 2 | the command could not run (missing store, wrong passphrase, guard, bad arguments) |
 
-## Examples
+## What is deliberately CLI-only
 
-```sh
-# first run (choose a passphrase of at least 8 characters and keep it safe)
-export KEEPER_PASSPHRASE='…'
-keeper init    --store ~/keeper-vault --device-name my-laptop
+`restore` writes the live session tree and `gc --yes` deletes objects: both belong to a moment with
+DSH closed. `extract` writes plaintext outside the vault: it exists only as an explicit command.
 
-# capture everything new; safe while DSH is running
-keeper snapshot --store ~/keeper-vault --home ~/.dsh
-
-# prove the vault is intact (no passphrase needed for the chain, but it verifies content too)
-keeper verify  --store ~/keeper-vault
-
-# what is where
-keeper status  --store ~/keeper-vault --json
-
-# on a new machine, with DSH closed: put the history back
-keeper restore --store ~/keeper-vault --home ~/.dsh --dry-run
-keeper restore --store ~/keeper-vault --home ~/.dsh
+```bash
+keeper restore --store <dir> --home <dsh home> [--dry-run] [--force]
 ```
-
-## Attachments
-
-A pasted image or file is not inside the session log: the log only carries
-`"attachmentId": "sha256:<64 hex>"`, and DSH keeps the blob under
-`<home>/attachments/v1/objects/<first two hex>/<sha256>`.
-
-`snapshot` reads the bytes it is about to publish, finds the references, and captures each
-blob **once** (they are content-addressed), sealed like any other object. Only referenced
-blobs are captured, never the whole directory. A reference whose blob is missing
-(`ATTACHMENT_MISSING`) or whose content no longer hashes to its name
-(`ATTACHMENT_MISMATCH`) is reported; the session is still published, because the log is
-intact and the blob is not.
-
-`verify` decrypts each captured blob and proves it still hashes to the name the session
-references. `restore` writes them back to the same layout and never overwrites a different
-file already on disk (`ATTACHMENT_CONFLICT`).
-
-## Inventory, before mounting anything
-
-```sh
-keeper inventory --store ~/keeper-vault --home ~/.dsh
-```
-
-Lists every session in the vault **grouped by the device it came from**, with its size, project
-path, local state (`absent`, `identical`, `behind`, `ahead`, `different`) and whether this host
-can read it. A session restored from another machine keeps its origin and is shown as `importada`.
-
-The compatibility verdict is learned, not declared: the keeper compares the event types of each
-session against the types this host has written in its own sessions. When the sample had to be cut
-for size, the verdict is advisory (a warning) and never blocks.
-
-## Exit codes
-
-| Code | Meaning |
-|---|---|
-| `0` | Everything the command had to do was done |
-| `3` | Completed, with refusals or skips that are a predicted outcome (a different log already exists, a session this host cannot read) |
-| `1` | A real error: unreadable vault, integrity problem, usage mistake |
-
-`restore` also accepts `--no-preflight` (write sessions this host may not read) and `--force`
-(write a session with a different log already present, or an unreadable one).
-
-## Merging two vaults
-
-```sh
-keeper merge --a ~/vault-pc --a-key ~/a.txt --b ~/vault-b --b-key ~/b.txt \
-             --out ~/vault-merged --out-key ~/merged.txt
-```
-
-Reads both vaults and writes a **new** one; the sources are never modified. `--dry-run` shows the
-plan and writes nothing. The command refuses to write into an existing store.
-
-Rules: identical content becomes one copy; when one lineage is a prefix of the other the longer
-one wins; when they genuinely diverge, the owner's lineage stays visible and the other
-continuation is stored as an **archived** entry — verified, counted by `verify`, never restored,
-and listed by `inventory`. Dedupe is by chunk content, so a shared prefix is stored once.
-
-A merge keeps **one visible conversation per session** — the owner's (the device whose manifest
-first published it). The other continuation is archived: verified, never restored, listed by
-`keeper inventory`. `--on-divergence=error` refuses to merge when the vaults disagree instead of
-archiving. The owner line is what `status` reports as `archived N continuation(s)`.
-
-## Compaction and garbage collection
-
-Reading the manifest chain costs one file per manifest, so a vault with hundreds of captures
-takes seconds to answer any question. A **checkpoint** is a single manifest that carries every
-chunk descriptor accumulated so far — all hashes, all byte ranges — and starts a fresh chain.
-
-```sh
-keeper compact --store ~/keeper-vault --dry-run   # what it would do
-keeper compact --store ~/keeper-vault             # write the checkpoint
-keeper gc      --store ~/keeper-vault             # count unreferenced objects (dry run)
-keeper gc      --store ~/keeper-vault --yes       # delete them
-```
-
-What compaction keeps: the bytes, every chunk hash, the prefix/end chain that proves
-continuity, and the attachments. What it gives up: which snapshot added which chunk — that
-provenance lives in the old manifests, which stay on disk until `gc`. `gc` only deletes
-objects the current chain does not reference; chunk and attachment objects are always
-referenced by the checkpoint, so in practice it removes superseded manifests.
-
-The plugin compacts on its own only when the policy approves, and the policy explains itself:
-manifests since the last checkpoint, chunks the checkpoint would carry, store size and free
-space, each with a hard bound. Set `autoCompact: false` to keep compaction a command you run.
-
-### Why `gc` is opt-in
-
-Keeping the superseded manifests costs **disk only**: the chain stops at the checkpoint, so
-they are never opened on the normal path and add no latency. What they hold is the record of
-which capture added which chunk — the only independent account of how the history was built —
-and, if the checkpoint object is ever damaged, the raw material from which a careful recovery
-could start (it needs the previous head reference, which the checkpoint carries in `covers`,
-so a damaged checkpoint makes that recovery manual).
-
-The trade is therefore 590 KiB against provenance, and a tool that removes it should be a
-deliberate decision, never a side effect. `gc` prints what it would delete and refuses to act
-without `--yes`.
-
-## Backfilling attachments
-
-Incremental capture only inspects the bytes it is about to publish. A session published
-before attachment support existed keeps its references pointing nowhere, and no future
-capture will revisit those bytes. `keeper attachments` closes that gap explicitly:
-
-```sh
-keeper attachments --store ~/keeper-vault --home ~/.dsh --dry-run
-keeper attachments --store ~/keeper-vault --home ~/.dsh
-```
-
-It reconstructs every published session once, collects the `sha256:` references, and captures
-the blobs that are missing from the vault. Idempotent: running it again captures nothing.
-A reference whose blob is no longer on disk is reported and makes the command exit non-zero.
-
-## The secret gate
-
-Before a chunk is sealed, `snapshot` decompresses the bytes it is about to publish and scans
-them. A match **quarantines the whole session** — nothing of it is written — and the report
-names the rule and the line, never the value:
-
-```text
-! session-abc  QUARANTINED: looks like it contains a secret (openai-key at line 2);
-  nothing was published. Re-run with --force to publish anyway, or allow the rule.
-```
-
-Why quarantine and not redaction: redaction would change the bytes, and the whole promise is
-that a restored session is byte-identical to the one the host wrote. The session stays local
-and unpublished until the operator decides.
-
-Rules: `openai-key`, `github-token`, `github-pat`, `aws-key`, `private-key`, `bearer`,
-`secret-assignment`, `npm-token`, plus `high-entropy` only with `--entropy`. A password
-written in prose is not detectable by pattern; the gate is a safety net, not a guarantee.
-## What each command refuses to do
-
-- `snapshot` will not capture a torn tail (it stops at the last complete frame) and will not
-  publish a session whose local log no longer matches the published history — it reports
-  `DIVERGED` and writes nothing.
-- `verify` never repairs, never rewrites, and never deletes.
-- `restore` never overwrites an existing log, even with `--force`; it writes the incoming
-  copy aside.
-- `init` never reuses an existing store directory.
-
-## Inside DSH
-
-The plugin exposes the same engine through a conversation command:
-
-| Command | Equivalent CLI |
-|---|---|
-| `/keeper status` | `keeper status`, plus whether the automatic capture hooks are attached |
-| `/keeper snapshot` | `keeper snapshot --home <configured>` |
-| `/keeper verify` | `keeper verify` |
-| `/keeper help` | `keeper help` |
-
-`restore` is **not** available inside the host on purpose: it writes the live session store
-and a running DSH would not notice. The refusal message prints the exact CLI line to run.
-
-## Capabilities
-
-```sh
-keeper capabilities --json
-```
-
-Prints the CLI version, the vault format it speaks and the commands it supports, so a script can
-check what this installation can do instead of parsing a version number.

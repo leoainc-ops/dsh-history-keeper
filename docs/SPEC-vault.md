@@ -1,4 +1,15 @@
-# SPEC de la bóveda — contrato `store/1`
+# Especificación del formato de la bóveda — `store/1`
+
+**Norma.** Este documento define el formato `store/1`. Una implementación **cumple** si abre una
+bóveda de referencia con la frase de prueba, valida su contenido (`verify`), restaura las sesiones
+byte por byte, detecta un objeto alterado y rechaza una frase incorrecta. El kit de certificación
+es `conformance/`; el comando `keeper conform` aplica los mismos controles a cualquier bóveda.
+
+**Qué no garantiza**: no protege contra el olvido de la frase (no hay recuperación), ni contra una
+máquina desbloqueada con la bóveda accesible, ni contra errores del host al escribir una sesión, ni
+ofrece sincronización en vivo entre máquinas. El formato evoluciona por extensiones aditivas y por
+versiones mayores declaradas en `minReader.format`; un lector que no conoce una versión mayor la
+rechaza con un código, nunca adivina.
 
 Este documento es **el contrato**. Todo lo demás —CLI, plugin, lanzadores, filosofías— es una
 superficie sobre este formato. Dos implementaciones distintas son compatibles si y sólo si cumplen
