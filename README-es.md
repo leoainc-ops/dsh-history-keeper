@@ -166,6 +166,8 @@ publicaron y por qué: [CHANGELOG.md](CHANGELOG.md).
 
 | Documento | Qué responde |
 |---|---|
+| [`docs/MANUAL-GENERAL.md`](docs/MANUAL-GENERAL.md) | manual del usuario: qué es, cómo se usa, preguntas frecuentes |
+| [`docs/MANUAL-TECNICO.md`](docs/MANUAL-TECNICO.md) | manual técnico: módulos, formato, cifrado, concurrencia |
 | [`docs/CLI.md`](docs/CLI.md) | cada comando, sus opciones y cuáles necesitan DSH cerrado |
 | [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | el ciclo diario, el mantenimiento y qué hacer ante cada fallo |
 | [`docs/TRANSFER.md`](docs/TRANSFER.md) | cómo viaja la bóveda: exportación, buzón, importación, deshacer |
