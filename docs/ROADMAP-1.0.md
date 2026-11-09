@@ -194,3 +194,32 @@ por red o nube · adaptadores para otros hosts · cambios de cifrado o de frase.
   alternativa es un aviso visible en la conversación más `/keeper import <ruta>`. Se verifica al
   llegar a M5 y se informa antes de prometerlo.
 - **El catálogo agrega superficie al contrato**: se define en M3 junto con la conformidad, no antes.
+
+## Cierre de la sesión 2026-11-09
+
+**Hecho y verificado**
+
+- M1–M5 en código y probados; 167 tests, conformidad de 7 puntos, guard de sesiones.
+- `0.1.0-rc.47` en el repositorio y en el perfil, con el merge que agrega en vez de reescribir.
+- Bóveda real: 11 sesiones, 11.486 frames, 16,0 MiB; `verify` y `conform` ok.
+- Export al pendrive verificado y conformado (11 sesiones, 16,0 MiB, 10 adjuntos).
+- README/README-es declaran el estado real; `PLAN.md` saneado (sin nombre de equipo ni rutas de drive).
+
+**Pendiente inmediato**
+
+- **Compactar y reclamar**: hay 104 objetos sin referencia (11,2 MiB). Requiere DSH cerrado:
+  `keeper compact`, luego `keeper gc --yes`, y reexportar al pendrive.
+- **npm**: rc.47 está publicada (el registro rechaza republicarla) pero su lectura da 404 y `latest`
+  sigue en rc.46. Cuando sea legible: mover el tag `latest` y deprecar rc.45/rc.46.
+
+**Decisiones de esta sesión (opción prudente)**
+
+- `PLAN.md` y `LESSONS.md` siguen públicos, saneados: son la memoria del proyecto.
+- La especificación se queda en este repositorio hasta 1.0; se extrae sólo si hay terceros.
+- Tags: sólo `v1.0.0` al congelar, más los hitos que se decidan entonces.
+- No se depreca nada mientras `latest` no tenga una versión sana y legible.
+
+**Material de trabajo (fuera del repositorio)**
+
+- `C:\Users\leoai\keeper\docs\PREPRINT-documentacion-1.0.md` — propuesta de documentación y
+  trazado de las 45 versiones publicadas, para publicar después de 1.0.
