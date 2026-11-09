@@ -135,6 +135,41 @@ disponible; `import --undo` deja todo como estaba.
 | 2026-11-08 | El journal de M5 registra archivos de sesión, no «la bóveda anterior» | El swap que esa frase suponía lo eliminó M1 |
 | 2026-11-08 | «Versión del host» = versión del formato de log | La versión de la app DSH no es alcanzable desde el plugin; el contrato del log sí es lo que la bóveda carga |
 
+## Pendiente: higiene y uso de recursos
+
+Controlar la basura y el consumo es parte del producto, no una limpieza ocasional. Cada artefacto
+tiene que tener dueño, política y comando. Estado al 2026-11-09:
+
+| Artefacto | Quién lo crea | Política | Estado |
+|---|---|---|---|
+| `history-keeper.incoming` (buzón) | `import --stage` / `/keeper import <ruta>` | **borrar** cuando el import termina bien; **apartar** a `.failed-<sello>` si falla | **falta** (hoy queda una copia de 15 MB) |
+| `history-keeper.incoming.imported-*` | `autoImport` (comportamiento actual) | dejar de crearlo; el éxito borra el buzón | **falta** |
+| `meta.json.before-upgrade-*` | `keeper upgrade` | conservar hasta el primer export o 7 días; después borrar | **falta** |
+| `.replaced-*` / `.superseded-*` / `.broken-*` / `.backup-*` | versiones anteriores | no se crean más; los existentes se revisan y se borran | ok (ninguno hoy) |
+| `<store>.key` o `history-keeper.key` | `init` sin frase | **una sola copia de la frase**; ya no se genera en el home cuando hay `passphraseFile` ni con `--store` explícito | **hecho** (rc.45) |
+| `~/.dsh/pending/*.tgz` | instalación desde paquete local | borrar después de instalar | ocasional |
+| `carry-*.json` en el pendrive | cada export | conservar los últimos 20 (son de KB) y podar el resto | **falta** |
+| Objetos no referenciados | capturas y compactaciones | `gc` automático tras compactar (`retention.autoGc`) | **hecho** (rc.38) |
+| Manifiestos viejos | cada captura | compactar cada 50; el checkpoint reemplaza la cadena | hecho (política activa) |
+| `sessions/*.incoming-*` | `restore --force` | aparta la copia del host; revisar y borrar | manual |
+
+### Auditoría de recursos que debe existir
+
+Un comando `keeper doctor` (pendiente) que informe y proponga acciones:
+
+- objetos totales vs referenciados, y bytes recuperables con `gc`;
+- manifiestos desde el último checkpoint, y si la compactación está por vencer;
+- invariante de tamaño: bytes de la bóveda ≤ 1,1 × bytes de sesiones únicas;
+- restos en el home (buzón, `.imported-*`, `.failed-*`, `.before-upgrade-*`, `.key` duplicada);
+- espacio libre en el destino de export y en el buzón antes de copiar;
+- estado del journal de deshacer (armado, vence el …).
+
+### Regla
+
+Ninguna operación deja una copia completa de la bóveda en el disco. La copia existe sólo mientras
+está en tránsito (el pendrive, el buzón durante un import) y se borra al terminar. Lo que falla se
+aparta con nombre y fecha, y se informa.
+
 ## Fuera de la 1.0 (a propósito)
 
 Consolidar o fusionar conversaciones en la vista (depende del host) · UI propia · Hub · sincronización
