@@ -8,6 +8,20 @@ From `1.0.0` on, the `latest` npm tag points at a stable release. Before that, i
 pre-release on purpose: the plugin was usable but the host APIs it binds to were still moving. The
 withdrawn and deprecated versions are marked in the registry and listed in `docs/HISTORY.md`.
 
+## 1.0.2 — 2026-11-09
+
+Documentation only. The code is identical to 1.0.0.
+
+- **`docs/MANUAL-GENERAL.md`**: the manual for the first encounter by a non-technical user — what it
+  is and what it is not, installation, the day-to-day (nothing to do), taking the history to another
+  machine, recovering everything on a new one, extracting a conversation, maintenance, the phrase,
+  what to do with each error message, fifteen FAQs, a glossary, and the promise with its limits.
+- **`docs/MANUAL-TECNICO.md`**: the manual for whoever operates, audits or extends it —
+  requirements, architecture, the module map, the on-disk layout, the `store/1` format field by
+  field, crypto parameters and what is not encrypted, the host log, capture, compaction, transport,
+  concurrency, error codes, extensions, conformance, development, measured space and the threat
+  model (including that the receipt carries a truncated hash of the phrase).
+- Both are linked from the two READMEs and from the documentation index.
 ## 1.0.1 — 2026-11-09
 
 Documentation only. The code is identical to 1.0.0.
