@@ -20,6 +20,26 @@ usable but the host APIs it binds to are still moving.
 - docs/CASES.md: the 26 situations the plugin covers, by role (backup, transport, convergence,
   recovery), with the 18 covered, the 5 conditional and the 3 gaps, and where the gaps concentrate.
 
+## 0.1.0-rc.47 — 2026-11-08
+
+### The merge still had two wrong ideas about what the vault already holds
+
+- **The lineage is the union, not one manifest.** The newest manifest that *mentions* a session is a
+  fragment: a snapshot writes only the new chunks. Measured on the real vault, that fragment had 12
+  chunks where the union has 448, so the merge believed 2.6 MB were missing, appended them again and
+  collided with the existing seqs. It now reads the lineage the way the reader does.
+- **`publishedAttachments` returns a Map, and the merge indexed it like an object**, so every
+  attachment looked new: importing would have re-sealed 619 KiB and written a manifest with the same
+  ten blobs. Both the early check and the payload now use `.has()`.
+- **Nothing complete to append means no entry.** A torn tail (or a session already covered to its
+  last byte) produced an entry with an empty chunk list, which describes a gap; such entries are
+  skipped, and a merge that writes nothing reports `changed: false`.
+
+### Verified on the two real vaults
+
+A dry run against the PC vault and the pendrive copy now says `changed: false`, 0 sealed bytes,
+0 new attachments, verification ok — which matches what the comparison showed: the stick has
+nothing the PC lacks.
 ## 0.1.0-rc.46 — 2026-11-08
 
 ### The merge was re-chunking what it should have appended
