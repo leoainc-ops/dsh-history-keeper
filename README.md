@@ -24,12 +24,17 @@ That includes the **attachments**: a pasted image or file lives outside the sess
 verified against the hash its name claims, and restored next to the conversation. A history
 without the images you pasted is an incomplete history.
 
-## What it will do
+## What it does
 
-| Milestone | Delivers |
+| Capability | State in 1.0 |
 |---|---|
-| **0.1** | `snapshot`, `verify` and `restore` from a shared folder, with the CLI working without DSH running |
-| **1.0** | live sync between machines, per-device manifests, explicit conflict handling, device pairing and revocation |
+| Capture and verify sessions from the host | works, byte for byte, with per-device heads |
+| Restore into a DSH home without overwriting | works, with `.incoming-*` for conflicts |
+| Travel on a pendrive with a drop box and an undo window | works: `export`, `import --stage`, `import --undo` |
+| Describe itself and refuse a newer format | works: `writer`/`minReader`, `keeper conform` |
+| Catalog, extraction to plaintext, vault upgrade | works: `catalog`, `extract` (readable/JSONL/raw), `upgrade` |
+| Measure and reclaim its own space | works: `keeper doctor`, automatic reclaim after compaction |
+| Live sync between machines, device pairing and revocation, a host UI | **out of scope for 1.0**, by decision |
 
 ## Try it now (from a checkout)
 
@@ -116,9 +121,10 @@ rendered in your local time zone next to the offset.
 
 ## Roadmap
 
-The plan to 1.0 and to the vault as a standard product lives in
-[docs/ROADMAP-1.0.md](docs/ROADMAP-1.0.md): six phases, a definition of done, and what is
-explicitly out of scope. The format itself is the contract in [docs/SPEC-vault.md](docs/SPEC-vault.md).
+1.0 shipped on 2026-11-09. [docs/ROADMAP-1.0.md](docs/ROADMAP-1.0.md) keeps the record: the six
+phases, their acceptance criteria, the definition of done, the deviations that were accepted and
+what is explicitly out of scope. What comes after 1.0 is listed in the CHANGELOG under
+"After 1.0". The format itself is the contract in [docs/SPEC-vault.md](docs/SPEC-vault.md).
 
 ## Design principles
 
@@ -138,10 +144,22 @@ opaque. There is no server and no account.
 
 ## Install
 
-Not published yet. When 0.1 ships:
+The package is published as `dsh-history-keeper` (the `latest` tag is the stable 1.0 line).
 
 ```sh
-dsh plugin --profile web add dsh-history-keeper
+# in the DSH profile (this is how it runs inside the host)
+cd ~/.dsh/profiles/desktop        # or: $env:USERPROFILE.dshprofilesdesktop
+pnpm add dsh-history-keeper@1.0.0
+
+# or, if your DSH CLI exposes the plugin command
+dsh plugin --profile desktop add dsh-history-keeper
+```
+
+Restart DSH after installing: the plugin is loaded at start. The CLI can also be used on its own,
+without the host:
+
+```sh
+node node_modules/dsh-history-keeper/bin/keeper.js capabilities
 ```
 
 ## Compatibility

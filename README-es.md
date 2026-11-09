@@ -20,12 +20,17 @@ tenés está intacta.
 `dsh-history-keeper` existe para resolver eso: capturar el historial, cifrarlo,
 verificarlo y restaurarlo byte a byte.
 
-## Qué va a hacer
+## Qué hace
 
-| Hito | Entrega |
+| Capacidad | Estado en 1.0 |
 |---|---|
-| **0.1** | `snapshot`, `verify` y `restore` desde una carpeta compartida, con la CLI funcionando sin DSH abierto |
-| **1.0** | sync en vivo entre máquinas, manifiestos por dispositivo, conflictos explícitos, vinculación y revocación de dispositivos |
+| Capturar y verificar sesiones del host | funciona, byte por byte, con cabezas por dispositivo |
+| Restaurar en un home de DSH sin sobrescribir | funciona, con `.incoming-*` para conflictos |
+| Viajar en un pendrive con buzón y ventana de deshacer | funciona: `export`, `import --stage`, `import --undo` |
+| Describirse a sí misma y rechazar un formato mayor | funciona: `writer`/`minReader`, `keeper conform` |
+| Catálogo, extracción a texto plano, actualización de bóvedas | funciona: `catalog`, `extract` (legible/JSONL/raw), `upgrade` |
+| Medir y reclamar su propio espacio | funciona: `keeper doctor`, reclamo automático tras compactar |
+| Sync en vivo, emparejamiento y revocación, UI propia | **fuera de alcance de la 1.0**, por decisión |
 
 ## Probalo ahora (desde un checkout)
 
@@ -124,10 +129,22 @@ opaco. No hay servidor ni cuenta.
 
 ## Instalación
 
-Todavía no está publicado. Cuando salga 0.1:
+El paquete está publicado como `dsh-history-keeper` (`latest` es la línea estable 1.0).
 
 ```sh
-dsh plugin --profile web add dsh-history-keeper
+# en el perfil de DSH (así es como corre dentro del host)
+cd ~/.dsh/profiles/desktop
+pnpm add dsh-history-keeper@1.0.0
+
+# o, si tu CLI de DSH expone el comando de plugins
+dsh plugin --profile desktop add dsh-history-keeper
+```
+
+Reiniciá DSH después de instalar: el plugin se carga al arrancar. La CLI también se puede usar sola,
+sin el host:
+
+```sh
+node node_modules/dsh-history-keeper/bin/keeper.js capabilities
 ```
 
 ## Compatibilidad

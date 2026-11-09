@@ -2,10 +2,11 @@
 
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
-[SemVer](https://semver.org/) with pre-release tags while the project is in preview.
+[SemVer](https://semver.org/).
 
-During the preview, the `latest` npm tag points at a pre-release on purpose: the plugin is
-usable but the host APIs it binds to are still moving.
+From `1.0.0` on, the `latest` npm tag points at a stable release. Before that, it pointed at a
+pre-release on purpose: the plugin was usable but the host APIs it binds to were still moving. The
+withdrawn and deprecated versions are marked in the registry and listed in `docs/HISTORY.md`.
 
 ## 1.0.0 — 2026-11-09
 

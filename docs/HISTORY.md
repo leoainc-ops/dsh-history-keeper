@@ -53,17 +53,18 @@ registro; los resúmenes, del `CHANGELOG.md`, que es la fuente completa.
 | `0.1.0-rc.35` | 2026-11-04 | histórica | **The prepare step of import reports what this host can read.** Before anything live is |
 | `0.1.0-rc.36` | 2026-11-04 | histórica | **docs/SPEC-vault.md**: the vault format written as a contract — layout, crypto, chunks, |
 | `0.1.0-rc.37` | 2026-11-05 | histórica | **keeper capabilities --json**: version, vault format and supported commands. A script asks what |
-| `0.1.0-rc.38` | 2026-11-07 | actual | **Compaction reclaims what it replaces.** After writing a checkpoint, the manifests it made |
-| `0.1.0-rc.39` | 2026-11-07 | actual | **Compare-and-swap on the head.** writeManifest accepts expectHead; if the head moved |
-| `0.1.0-rc.40` | 2026-11-08 | actual | **The vault says what it is.** meta.writer records the plugin that wrote it, and |
-| `0.1.0-rc.41` | 2026-11-08 | actual | **keeper extract --session <id> --out <file>** writes one conversation as a readable Markdown |
-| `0.1.0-rc.42` | 2026-11-08 | actual | **A drop box, not a magic folder.** Copy a carried vault into <home>/history-keeper.incoming |
-| `0.1.0-rc.43` | 2026-11-08 | actual | **keeper upgrade** (and **/keeper upgrade**) adds what an older vault does not declare: |
-| `0.1.0-rc.44` | 2026-11-08 | actual | **keeper conform**: validates *any* vault against the contract, not just the reference one: |
+| `0.1.0-rc.38` | 2026-11-07 | histórica | **Compaction reclaims what it replaces.** After writing a checkpoint, the manifests it made |
+| `0.1.0-rc.39` | 2026-11-07 | histórica | **Compare-and-swap on the head.** writeManifest accepts expectHead; if the head moved |
+| `0.1.0-rc.40` | 2026-11-08 | histórica | **The vault says what it is.** meta.writer records the plugin that wrote it, and |
+| `0.1.0-rc.41` | 2026-11-08 | histórica | **keeper extract --session <id> --out <file>** writes one conversation as a readable Markdown |
+| `0.1.0-rc.42` | 2026-11-08 | histórica | **A drop box, not a magic folder.** Copy a carried vault into <home>/history-keeper.incoming |
+| `0.1.0-rc.43` | 2026-11-08 | histórica | **keeper upgrade** (and **/keeper upgrade**) adds what an older vault does not declare: |
+| `0.1.0-rc.44` | 2026-11-08 | histórica | **keeper conform**: validates *any* vault against the contract, not just the reference one: |
 | `0.1.0-rc.45` | 2026-11-08 | **deprecada** (merge reescribía sesiones) | **/keeper import F:\keeper-transfer failed** with "no vault at F:\keeper-transfer": the drop-box |
 | `0.1.0-rc.46` | 2026-11-08 | **deprecada** (merge reescribía sesiones) | **Identical sessions are skipped.** If the local vault already holds the session up to the same |
-| `0.1.0-rc.47` | 2026-11-09 | actual | **The lineage is the union, not one manifest.** The newest manifest that *mentions* a session is a |
-| `0.1.0-rc.48` | 2026-11-09 | actual | **A successful import deletes the staged copy** instead of renaming it to .imported-*. That |
+| `0.1.0-rc.47` | 2026-11-09 | histórica (superada por 1.0.0) | **The lineage is the union, not one manifest.** The newest manifest that *mentions* a session is a |
+| `0.1.0-rc.48` | 2026-11-09 | histórica (superada por 1.0.0) | **A successful import deletes the staged copy** instead of renaming it to .imported-*. That |
+| `1.0.0` | 2026-11-09 | **estable (actual)** | **The vault is the product.** docs/SPEC-vault.md defines the format store/1 as a norm: any |
 
 ---
 

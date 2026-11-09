@@ -91,8 +91,9 @@ en dos máquinas.
 ## Lo que esto dice del producto
 
 - **Respaldo y transporte cumplen la promesa** tal como está escrita en el README.
-- **Convergencia** cubre lo que no requiere el host abierto; lo que falta es automatización y
-  selección, no integridad.
+- **Convergencia** cubre lo que no requiere el host abierto. La importación al arrancar y el
+  deshacer cerraron la automatización; lo que falta es **selección** (llevar una conversación o un
+  proyecto y no todo), y es superficie, no integridad.
 - Los tres huecos se pueden cerrar **sin tocar el contrato** (`SPEC-vault.md`): son superficie, no
   formato.
 

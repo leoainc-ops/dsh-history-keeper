@@ -5,6 +5,10 @@ Asentado el 2026-11-07. **Punto de partida**: `0.1.0-rc.37`. **Destino**: `1.0.0
 La regla de esta etapa: **no se agregan funciones nuevas**. Todo lo que sigue cierra lo que ya
 existe, o completa lo que el estándar necesita para ser un estándar.
 
+> **Cerrada el 2026-11-09 con `1.0.0`.** Este documento queda como registro: qué se planeó, qué se
+> aceptó, qué se desvió y qué quedó fuera. Lo que sigue después de 1.0 está en el CHANGELOG, en
+> «After 1.0».
+
 ## Estado de ejecución
 
 | Fase | Estado | Versión |
@@ -14,7 +18,7 @@ existe, o completa lo que el estándar necesita para ser un estándar.
 | M3 — formato v1 y handshake | **hecho** · `writer`/`minReader`, `catalog` derivado, `export --downlevel`, `keeper conform` | `rc.40` + `rc.44` |
 | M4 — extracción legible/fiel | **hecho** · `keeper extract` (readable/JSONL/raw), gate de secretos, BOM | `rc.41` + `rc.44` |
 | M5 — arranque con importación automática | **hecho en código** · buzón, import al montar, journal, `import --undo`, `/keeper undo`; **falta la prueba real entre PC** | `rc.42` |
-| M6 — congelar 1.0.0 | pendiente | — |
+| M6 — congelar 1.0.0 | **hecho** · tag `v1.0.0`, release, npm `latest` | `1.0.0` |
 
 
 ## Principios que ordenan la etapa
@@ -100,9 +104,11 @@ disponible; `import --undo` deja todo como estaba.
 
 ### M6 — Congelar 1.0.0
 
-- Matriz de compatibilidad probada: 2 versiones de DSH, 2 del plugin.
-- `docs/CLI.md`, `docs/OPERATIONS.md`, `docs/TRANSFER.md`, `docs/SPEC-vault.md` y el README al día
-  (el README todavía declara `0.2.0-rc.2` como versión de desarrollo).
+- Matriz de compatibilidad: **parcial y declarada**. Dos generaciones del plugin (rc.38 y 1.0.0)
+  probadas contra la misma bóveda; el eje de la segunda versión de DSH no se pudo cubrir (sólo había
+  una build) y está escrito en `docs/COMPATIBILITY.md`.
+- `docs/CLI.md`, `docs/OPERATIONS.md`, `docs/TRANSFER.md`, `docs/SPEC-vault.md`, `docs/HISTORY.md`,
+  `docs/COMPATIBILITY.md` y los dos README al día.
 - Sin funciones nuevas: sólo correcciones que bloqueen la aceptación de M5.
 
 ## Pista E — la bóveda como producto estándar
@@ -135,27 +141,27 @@ disponible; `import --undo` deja todo como estaba.
 | 2026-11-08 | El journal de M5 registra archivos de sesión, no «la bóveda anterior» | El swap que esa frase suponía lo eliminó M1 |
 | 2026-11-08 | «Versión del host» = versión del formato de log | La versión de la app DSH no es alcanzable desde el plugin; el contrato del log sí es lo que la bóveda carga |
 
-## Pendiente: higiene y uso de recursos
+## Higiene y uso de recursos (cerrada el 2026-11-09, salvo la poda de recibos)
 
 Controlar la basura y el consumo es parte del producto, no una limpieza ocasional. Cada artefacto
 tiene que tener dueño, política y comando. Estado al 2026-11-09:
 
 | Artefacto | Quién lo crea | Política | Estado |
 |---|---|---|---|
-| `history-keeper.incoming` (buzón) | `import --stage` / `/keeper import <ruta>` | **borrar** cuando el import termina bien; **apartar** a `.failed-<sello>` si falla | **falta** (hoy queda una copia de 15 MB) |
-| `history-keeper.incoming.imported-*` | `autoImport` (comportamiento actual) | dejar de crearlo; el éxito borra el buzón | **falta** |
-| `meta.json.before-upgrade-*` | `keeper upgrade` | conservar hasta el primer export o 7 días; después borrar | **falta** |
+| `history-keeper.incoming` (buzón) | `import --stage` / `/keeper import <ruta>` | **borrar** cuando el import termina bien; **apartar** a `.failed-<sello>` si falla | **hecho** (`rc.48`) |
+| `history-keeper.incoming.imported-*` | `autoImport` (comportamiento anterior) | ya no se crea: el éxito borra el buzón (`--keep-staged` si se quiere conservar) | **hecho** (`rc.48`) |
+| `meta.json.before-upgrade-*` | `keeper upgrade` | se conservan los **últimos 3** y se borran los anteriores | **hecho** (`rc.48`) |
 | `.replaced-*` / `.superseded-*` / `.broken-*` / `.backup-*` | versiones anteriores | no se crean más; los existentes se revisan y se borran | ok (ninguno hoy) |
 | `<store>.key` o `history-keeper.key` | `init` sin frase | **una sola copia de la frase**; ya no se genera en el home cuando hay `passphraseFile` ni con `--store` explícito | **hecho** (rc.45) |
 | `~/.dsh/pending/*.tgz` | instalación desde paquete local | borrar después de instalar | ocasional |
-| `carry-*.json` en el pendrive | cada export | conservar los últimos 20 (son de KB) y podar el resto | **falta** |
+| `carry-*.json` en el pendrive | cada export | conservar los últimos 20 (son de KB) y podar el resto | **falta** (hoy hay 5) |
 | Objetos no referenciados | capturas y compactaciones | `gc` automático tras compactar (`retention.autoGc`) | **hecho** (rc.38) |
 | Manifiestos viejos | cada captura | compactar cada 50; el checkpoint reemplaza la cadena | hecho (política activa) |
 | `sessions/*.incoming-*` | `restore --force` | aparta la copia del host; revisar y borrar | manual |
 
 ### Auditoría de recursos que debe existir
 
-Un comando `keeper doctor` (pendiente) que informe y proponga acciones:
+Un comando `keeper doctor` (**hecho en `rc.48`**) que informa y propone acciones:
 
 - objetos totales vs referenciados, y bytes recuperables con `gc`;
 - manifiestos desde el último checkpoint, y si la compactación está por vencer;
@@ -195,24 +201,23 @@ por red o nube · adaptadores para otros hosts · cambios de cifrado o de frase.
   llegar a M5 y se informa antes de prometerlo.
 - **El catálogo agrega superficie al contrato**: se define en M3 junto con la conformidad, no antes.
 
-## Cierre de la sesión 2026-11-09
+## Cierre de la sesión 2026-11-09 (previo a la prueba A)
 
 **Hecho y verificado**
 
 - M1–M5 en código y probados; 167 tests, conformidad de 7 puntos, guard de sesiones.
-- `0.1.0-rc.47` en el repositorio y en el perfil, con el merge que agrega en vez de reescribir.
+- `0.1.0-rc.47` en el repositorio y en el perfil, con el merge que agrega en vez de reescribir (hoy el perfil y el repositorio están en `1.0.0`).
 - Bóveda real: 11 sesiones, 11.486 frames, 16,0 MiB; `verify` y `conform` ok.
 - Export al pendrive verificado y conformado (11 sesiones, 16,0 MiB, 10 adjuntos).
 - README/README-es declaran el estado real; `PLAN.md` saneado (sin nombre de equipo ni rutas de drive).
 
-**Pendiente inmediato**
+**Cerrado después de ese cierre**
 
-- **Compactar y reclamar**: hay 104 objetos sin referencia (11,2 MiB). Requiere DSH cerrado:
-  `keeper compact`, luego `keeper gc --yes`, y reexportar al pendrive.
-- **npm**: rc.47 está publicada (el registro rechaza republicarla) pero su lectura da 404 y `latest`
-  sigue en rc.46. Cuando sea legible: mover el tag `latest` y deprecar rc.45/rc.46.
+- **Compactado y reclamado**: 28,38 → 16,91 MB (ratio 1,059) y pendrive reexportado.
+- **npm**: `latest` = `1.0.0`; rc.45 y rc.46 deprecadas con motivo.
+- **1.0.0**: tag, release y publicación. Aceptación en un host nuevo: pendiente de la prueba A.
 
-**Decisiones de esta sesión (opción prudente)**
+**Decisiones de esa sesión (opción prudente)**
 
 - `PLAN.md` y `LESSONS.md` siguen públicos, saneados: son la memoria del proyecto.
 - La especificación se queda en este repositorio hasta 1.0; se extrae sólo si hay terceros.

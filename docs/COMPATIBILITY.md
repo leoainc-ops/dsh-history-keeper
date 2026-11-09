@@ -9,11 +9,14 @@ reader, which vault, and what happens".
 | Reader | Vault | Result |
 |---|---|---|
 | **rc.38** (`0.1.0-rc.38`) | written by **rc.48**, 11 sessions, 11.486 frames, 16,0 MiB | `verify: ok`; `restore` wrote **11 files**, byte for byte |
-| **rc.48** | the same vault | `verify: ok` |
-| **rc.48** | vault declaring `minReader.format = store/9000` | **refused**, exit 1: *"the vault requires format … or newer; this keeper speaks …"* plus the warning about the plugin version |
+| **1.0.0** (tested as rc.48) | the same vault | `verify: ok` |
+| **1.0.0** (tested as rc.48) | vault declaring `minReader.format = store/9000` | **refused**, exit 1: *"the vault requires format … or newer; this keeper speaks …"* plus the warning about the plugin version |
 | **rc.38** | vault declaring a newer `minReader` | reads it: **rc.38 predates the handshake and cannot see the field** |
 
-Host: **DeepSeek Harness `0.2.2-rc.1`**. Plugin: `0.1.0-rc.48` in the profile and in the repository.
+Host: **DeepSeek Harness `0.2.2-rc.1`**. Plugin: `1.0.0` in the profile and in the repository.
+
+The matrix was executed with `0.1.0-rc.48`, which is the same code as `1.0.0`: between them only the
+version string, the documentation and the packaging metadata changed.
 
 ## What the matrix proves
 
