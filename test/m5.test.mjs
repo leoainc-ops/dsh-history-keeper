@@ -61,7 +61,8 @@ test('an import at start merges, restores and leaves an undo window', (t) => {
   const restoredPath = journal.sessionsCreated[0].file
   assert.equal(fs.existsSync(restoredPath), true)
   assert.equal(fs.existsSync(incoming), false)
-  assert.equal(fs.readdirSync(home).some((name) => name.startsWith('history-keeper.incoming.imported-')), true)
+  // The staged copy is deleted on success: the vault now holds everything it carried.
+  assert.equal(fs.readdirSync(home).some((name) => name.startsWith('history-keeper.incoming')), false)
 
   assert.equal(journal.armed, true)
   assert.equal(journal.sessionsCreated.length, 1)
@@ -144,8 +145,9 @@ test('staging leaves a verified vault for the next start', (t) => {
   assert.equal(fs.existsSync(path.join(report.incoming, 'meta.json')), true)
   assert.equal(verifyStore(openStore(report.incoming, PASS)).ok, true)
 
-  // The box is not a pile: a second staging is refused until it is used.
-  assert.throws(() => stageIncoming({ home, from: otherDir, passphrase: PASS }), /not empty/)
+  // The box is not a pile: the same vault is reused, not copied again.
+  const again = stageIncoming({ home, from: otherDir, passphrase: PASS })
+  assert.equal(again.status, 'reused')
 })
 
 test('a pendrive folder that contains vault/ works as --from', (t) => {
@@ -165,4 +167,7 @@ test('a pendrive folder that contains vault/ works as --from', (t) => {
 
   const report = stageIncoming({ home, from: stick, passphrase: PASS })
   assert.equal(report.status, 'staged')
+  // Staging the same vault again reuses the box instead of refusing.
+  const again = stageIncoming({ home, from: stick, passphrase: PASS })
+  assert.equal(again.status, 'reused')
 })

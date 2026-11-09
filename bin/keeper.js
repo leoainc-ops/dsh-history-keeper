@@ -24,6 +24,7 @@ import { buildCatalog } from '../lib/catalog.js'
 import { extractSession } from '../lib/extract.js'
 import { upgradeVault } from '../lib/upgrade.js'
 import { conformVault } from '../lib/conform.js'
+import { runDoctor } from '../lib/doctor.js'
 import { checkCompatibility, describeCompatibility } from '../lib/handshake.js'
 import { closeUndoWindow, stageIncoming, undoImport } from '../lib/autoimport.js'
 import { assertHostClosed } from '../lib/hostguard.js'
@@ -52,6 +53,7 @@ commands
   catalog    every conversation in the vault, organized by workspace, turns and dates
   upgrade    add the current handshake and retention to an older vault (history untouched)
   conform    validate this vault against the contract (verify, restore byte-exact, refuse newer)
+  doctor     what the vault consumes, what is recoverable, and what is lying around
   extract    write one conversation as readable text or as its JSONL, outside the vault
   export     verify the vault and copy it to a pendrive (refuses to overwrite newer content), with a receipt
   import     verify a carried vault and bring it in place (--stage for the next start, --undo to take it back)
@@ -673,6 +675,20 @@ print(report, options, lines.join('\n'))
     return
   }
 
+  if (command === 'doctor') {
+    const store = openFrom(options)
+    const report = runDoctor(store, { home })
+    const lines = ["doctor " + store.dir]
+    const mark = { ok: "  ok    ", info: "  info  ", reclaim: "  RECLAIM", problem: "  PROBLEM" }
+    for (const finding of report.findings) {
+      lines.push((mark[finding.level] ?? "  ?     ") + " " + finding.message + (finding.action ? "  ->  " + finding.action : ""))
+    }
+    lines.push("")
+    lines.push("  vault " + humanBytes(report.totals.vaultBytes) + "   sessions " + humanBytes(report.totals.storedBytes) + "   reclaimable " + humanBytes(report.totals.reclaimableBytes))
+    print(report, options, lines.join("\n"))
+    process.exitCode = report.ok ? 0 : 1
+    return
+  }
   if (command === 'conform') {
     const store = openFrom(options)
     const pass = passphraseFrom(options)

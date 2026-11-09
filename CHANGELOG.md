@@ -20,6 +20,39 @@ usable but the host APIs it binds to are still moving.
 - docs/CASES.md: the 26 situations the plugin covers, by role (backup, transport, convergence,
   recovery), with the 18 covered, the 5 conditional and the 3 gaps, and where the gaps concentrate.
 
+## 0.1.0-rc.48 — 2026-11-09
+
+### The drop box stops leaving copies behind
+
+- **A successful import deletes the staged copy** instead of renaming it to `.imported-*`. That
+  rename was a full duplicate of the vault on every import — 15 MB in the field — which is exactly
+  the duplication M1 exists to remove. `--keep-staged` keeps it on request.
+- **A failed import moves the copy to `.failed-<stamp>`** and reports where it is, so the next
+  attempt starts from a clean box instead of "the drop box is not empty".
+- **Staging the same vault again reuses the box** (`status: reused`) instead of refusing; a
+  different vault in the box is refused with its storeId, and a box with no vault says so.
+- `/keeper import` reports **"nothing new"** when the copy carried nothing and names the
+  moved-aside path when the merge failed, instead of a bare stack-free error.
+
+### New: `keeper doctor`
+
+One read-only command that answers "what does this vault cost and what is lying around":
+
+- `verify` status, sessions, bytes and frames;
+- **unreferenced objects** and the bytes recoverable with `gc`;
+- manifests, checkpoints and whether compaction is due (with the policy's own reason);
+- the **size invariant** (vault bytes against unique session bytes, limit 1.1);
+- **leftovers** in the home: drop box, `.imported-*`, `.failed-*`, `meta.json.before-upgrade-*`,
+  locally packed tarballs;
+- the undo window, if a journal is armed;
+- totals, and exit code 1 only when the vault itself has a problem.
+
+Measured on the real vault: `vault 28.4 MiB · sessions 16.0 MiB · reclaimable 11.2 MiB`,
+ratio 1.777 — the command that made the pending compaction visible without running five others.
+
+### Retention
+
+- `keeper upgrade` keeps the **last three** `meta.json.before-upgrade-*` backups and deletes older ones.
 ## 0.1.0-rc.47 — 2026-11-08
 
 ### The merge still had two wrong ideas about what the vault already holds
