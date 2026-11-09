@@ -1,5 +1,6 @@
+# Which license applies to which file
 
-### Asignación archivo por archivo
+## Asignación archivo por archivo
 
 La regla que aplicamos:
 - **contenido textual/documentación original → CC BY-NC 4.0

@@ -7,18 +7,14 @@ All notable changes to this project are documented here. The format follows
 During the preview, the `latest` npm tag points at a pre-release on purpose: the plugin is
 usable but the host APIs it binds to are still moving.
 
-## Unreleased
+## After 1.0 (not in this release)
 
-- Interactive `/keeper init`: ask for the passphrase through the host (`ctx.userQuestions`)
-  and keep it in the host credential store (`ctx.credentials`), so no profile patch and no
-  passphrase file are needed.
-
-## Unreleased
-
-### Documentation
-
-- docs/CASES.md: the 26 situations the plugin covers, by role (backup, transport, convergence,
-  recovery), with the 18 covered, the 5 conditional and the 3 gaps, and where the gaps concentrate.
+- **Interactive `/keeper init`**: ask for the passphrase through the host (`ctx.userQuestions`) and
+  keep it in the host credential store (`ctx.credentials`), so no profile patch and no passphrase
+  file are needed. It depends on host APIs this build does not use yet, so it is not claimed as
+  part of 1.0.
+- **Second host version in the compatibility matrix**: only DeepSeek Harness `0.2.2-rc.1` was
+  available on the machine where 1.0 was prepared; see `docs/COMPATIBILITY.md`.
 
 ## 0.1.0-rc.48 — 2026-11-09
 

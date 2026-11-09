@@ -199,6 +199,8 @@ vault travels, what is retained. The one this version ships is the conservative 
 | [`docs/SPEC-vault.md`](docs/SPEC-vault.md) | the format, as a norm, and what it does not guarantee |
 | [`docs/HISTORY.md`](docs/HISTORY.md) | one row per published version, with its status |
 | [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) | the tested reader/vault combinations, and what is not covered |
+| [`docs/LICENSING-FILES.md`](docs/LICENSING-FILES.md) | which license applies to which file |
+| [`SECURITY.md`](SECURITY.md) | how to report a vulnerability |
 | [`CHANGELOG.md`](CHANGELOG.md) | the full record, including the withdrawn versions and why |
 | [`docs/LESSONS.md`](docs/LESSONS.md) | the field failures that shaped the design |
 
