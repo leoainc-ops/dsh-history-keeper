@@ -211,6 +211,7 @@ vault travels, what is retained. The one this version ships is the conservative 
 
 | Document | What it answers |
 |---|---|
+| [`docs/v2/00-INDICE.md`](docs/v2/00-INDICE.md) | the 2.0 portfolio: contract, architecture, phases and backlog — in development on branch `v2.0.0` |
 | [`docs/MANUAL-GENERAL.md`](docs/MANUAL-GENERAL.md) | the user manual: what it is, how to use it, FAQ (Spanish) |
 | [`docs/MANUAL-TECNICO.md`](docs/MANUAL-TECNICO.md) | the technical manual: modules, format, crypto, concurrency (Spanish) |
 | [`docs/CLI.md`](docs/CLI.md) | every command, its options, and which ones need DSH closed |

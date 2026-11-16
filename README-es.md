@@ -166,6 +166,7 @@ publicaron y por qué: [CHANGELOG.md](CHANGELOG.md).
 
 | Documento | Qué responde |
 |---|---|
+| [`docs/v2/00-INDICE.md`](docs/v2/00-INDICE.md) | el portafolio de 2.0: contrato, arquitectura, fases y backlog — en desarrollo en la rama `v2.0.0` |
 | [`docs/MANUAL-GENERAL.md`](docs/MANUAL-GENERAL.md) | manual del usuario: qué es, cómo se usa, preguntas frecuentes |
 | [`docs/MANUAL-TECNICO.md`](docs/MANUAL-TECNICO.md) | manual técnico: módulos, formato, cifrado, concurrencia |
 | [`docs/CLI.md`](docs/CLI.md) | cada comando, sus opciones y cuáles necesitan DSH cerrado |
