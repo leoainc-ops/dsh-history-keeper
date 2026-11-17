@@ -1,0 +1,11 @@
+keeper layout for this machine
+  home        <home>/.dsh
+  vault       <repo>/conformance/fixture/vault
+  key         <home>/AppData/Local/Temp/keeper-golden-phrase.txt
+  device      <home>/.dsh/history-keeper-device.json
+  origins     <home>/.dsh/history-keeper-origins.json
+  sessions    <home>/.dsh/sessions
+  attachments <home>/.dsh/attachments
+  replaced    <repo>/conformance/fixture/vault.replaced-<timestamp>
+  backups     <repo>/conformance/fixture/vault.backup-<timestamp>
+  stick       F:/keeper-transfer

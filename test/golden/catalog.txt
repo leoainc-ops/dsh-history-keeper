@@ -1,0 +1,12 @@
+catalog of <repo>/conformance/fixture/vault
+  format dsh-history-keeper/store/1  writer ?  minimum reader ?
+
+  session-conformance-alpha
+    workspace  C:/work/conformance
+    2 turn(s)  7 frame(s)  368 B  ? .. ?
+
+  session-conformance-beta
+    workspace  C:/work/conformance
+    1 turn(s)  4 frame(s)  231 B  ? .. ?
+
+  sessions 2   archived 0   turns 3   599 B   attachments 0

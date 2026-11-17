@@ -1,0 +1,9 @@
+doctor <repo>/conformance/fixture/vault
+  ok     the vault verifies: 2 session(s), 0.6 KiB, 11 frame(s)
+  ok     no unreferenced objects
+  ok     1 manifest(s), 0 checkpoint(s); only 1 manifest(s) since the last checkpoint (minimum 50)
+  info   1 device head(s): conformance-host
+  RECLAIM vault 3.1 KiB for 0.6 KiB of sessions (ratio 5.277, limit 1.1)  ->  compact + gc, or export and re-import
+  ok     nothing lying around in <home>/.dsh
+
+  vault 3.1 KiB   sessions 599 B   reclaimable 0 B

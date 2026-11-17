@@ -1,0 +1,18 @@
+{
+  "version": "1.0.2",
+  "format": "dsh-history-keeper/store/1",
+  "commands": [
+    "init",
+    "snapshot",
+    "attachments",
+    "compact",
+    "gc",
+    "merge",
+    "paths",
+    "export",
+    "import",
+    "verify",
+    "status",
+    "restore"
+  ]
+}

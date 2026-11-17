@@ -55,6 +55,17 @@ legal; un `import` de `host` en `core` es un error de arquitectura que la revisi
 | `plugin/index.js` | monta el servicio, comandos y tool | host |
 | `bin/keeper.js` | CLI: sólo habla con `core` y `host/publish-files` | host |
 
+### Estado en la rama `v2.0.0` (F0, K-01)
+
+El primer paso de F0 movió, **sin cambios de comportamiento**, `store`, `crypto`, `chunk`, `frames`,
+`verify`, `util`, `version` y `session-log` a `core/`. `lib/` conserva un re-export por módulo para
+que la suite y el CLI de 1.0.2 sigan funcionando sin tocarse.
+
+La tabla de arriba es el **destino** (`core/vault.js`, `core/chunks.js`, `core/plan.js`…); los
+nombres definitivos se adoptan en K-02 y K-03. Lo que ya es cierto: `core/` no importa nada de
+`lib/` ni del host, y las siete salidas del CLI sobre la bóveda de conformidad son **idénticas** a
+las de 1.0.2 (`test/golden/`).
+
 ## La operación, en dos fases
 
 Toda operación que escribe tiene la misma forma. Es la decisión estructural más importante después

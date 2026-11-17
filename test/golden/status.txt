@@ -1,0 +1,6 @@
+store    <repo>/conformance/fixture/vault
+device   Leoainc-Lenovo (fe03fe474ca755394658217e0a57cad8)  heads in store: 1
+snapshots 1  last <ts>
+published 2 session(s)  11 frame(s)  599 B
+archived  0 continuation(s) kept from a device that was not the owner
+attachments 0 blob(s)  0 B

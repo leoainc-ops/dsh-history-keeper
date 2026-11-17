@@ -1,0 +1,10 @@
+conform ok  <repo>/conformance/fixture/vault
+  ok   declares a format this build speaks  — dsh-history-keeper/store/1
+  ok   this reader can open the vault
+  ok   refuses a vault that asks for a newer format  — no FORMAT_TOO_NEW
+  ok   verify is ok
+  ok   restores every session  — 2 of 2
+  ok   restores byte for byte
+  ok   refuses a wrong passphrase
+  warn the vault predates the handshake; run keeper upgrade to let it describe itself
+  reader: 1.0.2  format dsh-history-keeper/store/1
