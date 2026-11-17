@@ -1,7 +1,7 @@
 {
   "name": "dsh-history-keeper",
   "version": "1.0.2",
-  "description": "Encrypted, verifiable history keeper for DeepSeek Harness: snapshot, verify and restore your sessions. No git, no external binaries.",
+  "description": "Keep your DeepSeek Harness conversation history in an encrypted, self-describing vault you own.",
   "type": "module",
   "main": "lib/index.js",
   "bin": {
