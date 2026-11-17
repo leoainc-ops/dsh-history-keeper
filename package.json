@@ -63,7 +63,8 @@
   "scripts": {
     "test": "node --test \"test/*.test.mjs\"",
     "guard": "node scripts/guard-no-sessions.mjs",
-    "conformance": "node conformance/run.mjs"
+    "conformance": "node conformance/run.mjs",
+    "golden": "node scripts/golden.mjs --check"
   },
   "publishConfig": {
     "access": "public"

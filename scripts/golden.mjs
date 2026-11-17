@@ -12,7 +12,7 @@ import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 
-const root = path.resolve(import.meta.dirname, '..', '..')
+const root = path.resolve(import.meta.dirname, '..')
 const goldenDir = path.join(root, 'test', 'golden')
 const check = process.argv.includes('--check')
 
