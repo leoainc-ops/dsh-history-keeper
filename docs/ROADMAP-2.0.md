@@ -11,7 +11,7 @@ pc-b, sin publicar nada.
 
 | # | Tarea | Estado | Evidencia |
 |---|---|---|---|
-| T1 | Spike del host: servicios, métodos y límites | **en curso** | `host/capabilities.js` (sonda) |
+| T1 | Spike del host: servicios, métodos y límites | **en curso** · sonda escrita; falta leer el reporte en el host real | `host/capabilities.js`, `/keeper host`, `history-keeper-host-probe.json` |
 | T2 | `core/plan`: clasificar sesiones y decidir destino | pendiente | — |
 | T3 | `host/capabilities`: elegir `uso` o `archivo` | pendiente | — |
 | T4 | `host/publish-native`: crear, append, flush, cerrar | pendiente | — |
@@ -46,7 +46,8 @@ pc-b, sin publicar nada.
 
 | Fecha | Tarea | Qué pasó | Commit |
 |---|---|---|---|
-| 2026-11-17 | — | Se fija el objetivo y esta hoja de ruta | — |
+| 2026-11-17 | — | Se fija el objetivo y esta hoja de ruta | `2a964b8` |
+| 2026-11-17 | T1 | Sonda del host: `probeHost` + `capabilities` + `/keeper host`; el plugin deja el reporte al montar. Falta instalarlo y leerlo en el host | este commit |
 
 ## Riesgos conocidos
 
