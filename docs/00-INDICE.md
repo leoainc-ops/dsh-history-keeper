@@ -71,6 +71,7 @@ Estados posibles: `borrador` · `revisado` · `aprobado` · `obsoleto`.
 | 19 | [Registro de decisiones (ADR)](19-ADR.md) | ¿por qué se eligió esto? | aprobado |
 | 20 | [Riesgos y supuestos](20-RIESGOS-Y-SUPUESTOS.md) | ¿qué puede salir mal? | borrador |
 | 21 | [Gobierno del proyecto](21-GOBIERNO.md) | ¿cómo cambia esto y quién aprueba? | aprobado |
+| — | [Hoja de ruta del primer objetivo](ROADMAP-2.0.md) | ¿en qué va el emparejamiento entre hosts? | en curso |
 | A | [Anexo A — Prueba A (evidencia)](anexos/A-PRUEBA-A-EVIDENCIA.md) | ¿qué pasó en la prueba que falló? | histórico |
 | B | [Anexo B — Trazado detallado](anexos/B-TRAZADO-DETALLADO.md) | ¿cómo se diseccionó una bóveda real? | histórico |
 | C | [Anexo C — Digesto de la sesión de pc-b](anexos/C-DIGESTO-montar-la-boveda.md) | ¿qué se decidió y qué se verificó en la sesión que originó 2.0? | histórico |

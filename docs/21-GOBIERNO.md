@@ -103,6 +103,7 @@ escrito. Los push a `v2.0.0` son parte del trabajo documental autorizado.
 | 2026-11-16 | 00, todos | apertura de 2.0: portafolio en `docs/`, 1.0 congelado en `docs/1.0/`, anexos C–E | producto |
 | 2026-11-16 | 21 | ramas: `main` queda en la línea publicada y 2.0 vive en `v2.0.0`; política de publicación explícita | producto |
 | 2026-11-17 | 13 | `init` pide la frase y nunca la genera (R1) | producto |
+| 2026-11-17 | —, 00 | hoja de ruta del primer objetivo: emparejamiento funcional entre hosts | producto |
 
 ## Qué sigue
 
