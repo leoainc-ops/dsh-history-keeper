@@ -18,7 +18,7 @@ un test no existe, la cláusula no está garantizada.
 | ID | Cláusula | Qué hace | Cómo se ve el verde |
 |---|---|---|---|
 | TC-1 | C1 Integridad | restituye una bóveda de referencia y compara bytes; altera un objeto | igualdad byte a byte + `HASH_MISMATCH` al alterar |
-| TC-2 | C2 Frase antes de escribir | abre con frase mala sobre un `home` con instantánea previa | árbol, journal y bóveda idénticos |
+| TC-2 | C2 Frase antes de escribir | abre con frase mala sobre un `home` con instantánea previa; `init` sin frase | árbol, journal y bóveda idénticos; `init` sin frase no crea nada |
 | TC-3 | C3 Nada se reemplaza | importa dos veces, importa una divergente, adjunta dos blobs con el mismo hash | hashes iguales antes/después; conflictos reportados |
 | TC-4 | C4 Falla cerrado | fixtures: objeto borrado, byte alterado, frame truncado, cadena cortada | cada uno con su código; nada escrito |
 | TC-5 | C5 Formato estable | bóveda de 2.0 leída por 1.0.2 y viceversa | `conform` en verde en las dos direcciones |

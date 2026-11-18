@@ -98,8 +98,8 @@ no se pudo importar: la bóveda no verifica (CHAIN_FAILED).
 ## Primera ejecución
 
 1. `keeper status` → si no hay bóveda, sugiere `keeper init`.
-2. `keeper init` → genera frase o pide una; la escribe en el archivo de clave con permisos
-   restringidos; muestra la huella.
+2. `keeper init` → **pide** la frase; nunca la genera. Si no se le da (`--key-file`, `--passphrase-file`
+   o `KEEPER_PASSPHRASE`), falla antes de crear nada y dice cómo hacerlo. Muestra la huella.
 3. Aviso de texto en claro cuando corresponda.
 4. Nada más.
 

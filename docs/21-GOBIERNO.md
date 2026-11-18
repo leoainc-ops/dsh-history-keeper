@@ -54,13 +54,14 @@ Todo cambio de un documento aprobado exige:
 
 ## Repositorio y ramas
 
-- `main` — desarrollo de 2.0.
-- `release/1.x` — congelada, sólo security/bugfix.
+- `main` — la línea **publicada** (1.0.x): sólo seguridad y correcciones.
+- `v2.0.0` — el desarrollo de 2.0: el portafolio vive en `docs/` y la documentación de 1.0 queda
+  congelada en `docs/1.0/`.
 - `feat/*` — ramas cortas por tarea; se mergean y se borran.
 - Sin fork (ADR-002).
 
-Política vigente: **no se publica nada** (ni paquete, ni tag, ni push a remoto) hasta que producto lo
-autorice por escrito. El portafolio se escribe antes que el código, a propósito.
+Política vigente: **no se publica paquete, tag ni versión** hasta que producto lo autorice por
+escrito. Los push a `v2.0.0` son parte del trabajo documental autorizado.
 
 ## Revisiones
 
@@ -99,6 +100,9 @@ autorice por escrito. El portafolio se escribe antes que el código, a propósit
 |---|---|---|---|
 | 2026-11-11 | todos | creación del portafolio 1.0 | arquitectura |
 | 2026-11-11 | 00, 01, 05, 20 | nombre del producto fijado en `dsh-history-keeper` v2.0.0; sin alias | producto |
+| 2026-11-16 | 00, todos | apertura de 2.0: portafolio en `docs/`, 1.0 congelado en `docs/1.0/`, anexos C–E | producto |
+| 2026-11-16 | 21 | ramas: `main` queda en la línea publicada y 2.0 vive en `v2.0.0`; política de publicación explícita | producto |
+| 2026-11-17 | 13 | `init` pide la frase y nunca la genera (R1) | producto |
 
 ## Qué sigue
 

@@ -42,25 +42,26 @@ test.afterEach(() => {
   delete process.env[ENV]
 })
 
-test('init creates the vault and a generated key file, then everything works with no config', async (t) => {
+test('init refuses without an explicit passphrase, then creates the vault once one is written', async (t) => {
   const { storeDir, keyFile, command } = setup(t)
   delete process.env[ENV]
 
+  const refused = await command.handler({ rawInput: 'init' })
+  assert.equal(refused.kind, 'error', refused.text)
+  assert.match(refused.text, /cannot create a vault without an explicit passphrase/)
+  assert.equal(fs.existsSync(path.join(storeDir, 'meta.json')), false, 'no vault is created')
+  assert.equal(fs.existsSync(keyFile), false, 'no key file is generated')
+
+  fs.writeFileSync(keyFile, 'a phrase chosen by the operator\n', 'utf8')
   const init = await command.handler({ rawInput: 'init' })
   assert.equal(init.kind, 'success', init.text)
   assert.match(init.text, /keeper initialized/)
-  assert.match(init.text, /passphrase source: generated key file /)
-  assert.match(init.text, /not printed here on purpose/)
+  assert.match(init.text, /passphrase source: key file /)
 
   assert.equal(fs.existsSync(path.join(storeDir, 'meta.json')), true, 'the vault must exist')
-  assert.equal(fs.existsSync(keyFile), true, 'the generated key file must exist')
-
-  const key = fs.readFileSync(keyFile, 'utf8').trim()
-  assert.ok(key.length >= 32, 'the generated passphrase must be long')
 
   const status = await command.handler({ rawInput: 'status' })
   assert.equal(status.kind, 'success', status.text)
-  assert.match(status.text, /passphrase key file /)
   assert.match(status.text, /vault holds 0 session/)
 
   const snap = await command.handler({ rawInput: 'snapshot' })
@@ -71,13 +72,14 @@ test('init creates the vault and a generated key file, then everything works wit
   assert.match(again.text, /already initialized/)
 })
 
-test('init never prints the generated passphrase itself', async (t) => {
+test('init never prints the passphrase it was given', async (t) => {
   const { keyFile, command } = setup(t)
   delete process.env[ENV]
+  const phrase = 'a phrase that must never be echoed'
+  fs.writeFileSync(keyFile, phrase + '\n', 'utf8')
 
   const init = await command.handler({ rawInput: 'init' })
-  const key = fs.readFileSync(keyFile, 'utf8').trim()
-  assert.equal(init.text.includes(key), false, 'the secret must not appear in the command output')
+  assert.equal(init.text.includes(phrase), false, 'the secret must not appear in the command output')
 })
 
 test('an explicit passphrase file wins and no key is generated', async (t) => {
@@ -99,7 +101,7 @@ test('an explicit passphrase file wins and no key is generated', async (t) => {
   assert.equal(fs.existsSync(keyFile), false, 'no key file may be generated when one is configured')
 })
 
-test('the CLI can initialize with a generated key file and read it back', (t) => {
+test('the CLI refuses to initialize without an explicit passphrase, then reads the one provided', (t) => {
   const { root, storeDir, keyFile } = setup(t)
   const env = { ...process.env }
   delete env[ENV]
@@ -107,11 +109,21 @@ test('the CLI can initialize with a generated key file and read it back', (t) =>
 
   const run = (...args) => spawnSync(process.execPath, [CLI, ...args], { encoding: 'utf8', env })
 
+  // 1. No passphrase anywhere: the vault is not created and no key file appears (R1).
+  const refused = run('init', '--store', storeDir, '--key-file', keyFile, '--json')
+  assert.equal(refused.status, 2)
+  assert.match(refused.stderr, /explicit passphrase/)
+  assert.equal(fs.existsSync(storeDir), false, 'no vault is created')
+  assert.equal(fs.existsSync(keyFile), false, 'no key file is generated')
+
+  // 2. The operator writes the phrase; init uses it and creates the vault.
+  fs.mkdirSync(path.dirname(keyFile), { recursive: true })
+  fs.writeFileSync(keyFile, 'a phrase chosen by the operator\n', 'utf8')
   const init = run('init', '--store', storeDir, '--key-file', keyFile, '--json')
   assert.equal(init.status, 0, init.stderr)
-  const report = JSON.parse(init.stdout)
-  assert.equal(report.generatedKeyFile, keyFile)
+  assert.equal(JSON.parse(init.stdout).generatedKeyFile, null)
 
+  // 3. The same file opens it.
   const verified = run('verify', '--store', storeDir, '--key-file', keyFile, '--json')
   assert.equal(verified.status, 0, verified.stderr)
   assert.equal(JSON.parse(verified.stdout).ok, true)

@@ -15,7 +15,8 @@ import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 import { generatePassphraseFile, readPassphraseFile } from '../lib/config.js'
-import { STORE_FORMAT, initStore, listDeviceHeads, openStore, readAllManifests, readManifestChain } from '../lib/store.js'
+import { STORE_FORMAT, listDeviceHeads, openStore, readAllManifests, readManifestChain } from '../lib/store.js'
+import { initVault } from '../core/vault.js'
 import { collectGarbage, compact } from '../lib/compact.js'
 import { inventory } from '../lib/inventory.js'
 import { exportVault } from '../lib/export.js'
@@ -191,7 +192,7 @@ function passphraseFrom(options, behaviour = {}) {
     return { passphrase: generated.passphrase, source: 'generated key file ' + keyFile, generated: keyFile }
   }
 
-  fail('passphrase not set: export ' + name + '=<passphrase>, or pass --key-file <path>, or run: keeper init')
+  fail(behaviour.hint ?? 'passphrase not set: export ' + name + '=<passphrase>, or pass --key-file <path>, or run: keeper init')
 }
 
 function openFrom(options) {
@@ -238,8 +239,12 @@ function main() {
 
   if (command === 'init') {
     const store = resolvePaths({ home: options.home ?? defaultHome(), vault: options.store ?? null }).vault
-    const pass = passphraseFrom(options, { allowGenerate: true })
-    const created = initStore(path.resolve(store), {
+    const pass = passphraseFrom(options, {
+      allowGenerate: false,
+      hint:
+        'init needs an explicit passphrase: export KEEPER_PASSPHRASE=<passphrase>, or pass --key-file <path> with the phrase in it (the vault never generates one)',
+    })
+    const created = initVault(path.resolve(store), {
       passphrase: pass.passphrase,
       deviceName: options['device-name'] ?? os.hostname(),
     })
