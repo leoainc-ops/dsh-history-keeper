@@ -14,15 +14,15 @@ pc-b, sin publicar nada.
 | T1 | Spike del host: servicios, métodos y límites | **cerrada con evidencia de campo** (montaje en pc-b, 2026-11-19) | ver «Evidencia de campo»; la sonda queda como diagnóstico |
 | T2 | `core/plan`: clasificar sesiones y decidir destino | **hecho** | `core/plan.js` + 6 casos; clasifica nueva / idéntica / divergente / ilegible / sin-destino |
 | T3 | `host/capabilities`: elegir `uso` o `archivo` | **hecho** | `capabilities()` decide por servicios presentes; se consume en T7 |
-| T4 | `host/publish-native`: crear, append, flush, cerrar | pendiente | — |
-| T5 | `host/workspaces`: resolver/crear y `attachSession` | pendiente | — |
+| T4 | `host/publish-native`: crear, append, flush, cerrar | **hecho** | `host/publish-native.js`: header original, cwd traducido, lotes contiguos, sello de contenido; 6 casos |
+| T5 | `host/workspaces`: resolver/crear y `attachSession` | **hecho** | `host/workspaces.js`: resuelve, crea si falta, ata una sola vez; 4 casos |
 | T6 | Traducción de `cwd` (mapa origen → destino) | pendiente | — |
 | T7 | `keeper mount`: planificar, aplicar, sellar, reportar | pendiente | — |
 | T8 | Journal + `undo` mínimos | pendiente | — |
 | T9 | Recibo de una página | pendiente | — |
 | T10 | Prueba real a↔b + instalación en el perfil documentada | pendiente | — |
 
-**Contador: faltan 7 tareas** (T4–T10). Se actualiza en cada bitácora.
+**Contador: faltan 5 tareas** (T6–T10). Se actualiza en cada bitácora.
 
 ## Definición de terminado del objetivo
 
@@ -49,6 +49,7 @@ pc-b, sin publicar nada.
 | 2026-11-17 | — | Se fija el objetivo y esta hoja de ruta | `2a964b8` |
 | 2026-11-17 | T1 | Sonda del host: `probeHost` + `capabilities` + `/keeper host`; el plugin deja el reporte al montar. Falta el reporte del host real | `f602f3b` |
 | 2026-11-19 | T1 | Montaje real en pc-b con DSH limpio: las sesiones aparecen **agrupadas por carpeta**, hace falta reiniciar, y en el primer arranque aparecieron **duplicadas**; el segundo arranque las mostró bien | evidencia de campo |
+| 2026-11-19 | T4 + T5 | Publicación nativa y agrupación, probadas contra un host falso: id original, `createdAt` intacto, `cwd` traducido, lotes contiguos, sello, y atachado idempotente | este commit |
 | 2026-11-19 | T2 + T3 | `core/plan` clasifica cada sesión contra el destino sin escribir; `capabilities()` decide el modo por servicios presentes. 6 casos nuevos, 185 tests | este commit |
 
 ## Evidencia de campo — montaje en pc-b (2026-11-19)
