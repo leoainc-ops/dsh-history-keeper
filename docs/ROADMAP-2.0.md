@@ -11,7 +11,7 @@ pc-b, sin publicar nada.
 
 | # | Tarea | Estado | Evidencia |
 |---|---|---|---|
-| T1 | Spike del host: servicios, métodos y límites | **en curso** · sonda escrita; falta leer el reporte en el host real | `host/capabilities.js`, `/keeper host`, `history-keeper-host-probe.json` |
+| T1 | Spike del host: servicios, métodos y límites | **cerrada con evidencia de campo** (montaje en pc-b, 2026-11-19) | ver «Evidencia de campo»; la sonda queda como diagnóstico |
 | T2 | `core/plan`: clasificar sesiones y decidir destino | **hecho** | `core/plan.js` + 6 casos; clasifica nueva / idéntica / divergente / ilegible / sin-destino |
 | T3 | `host/capabilities`: elegir `uso` o `archivo` | **hecho** | `capabilities()` decide por servicios presentes; se consume en T7 |
 | T4 | `host/publish-native`: crear, append, flush, cerrar | pendiente | — |
@@ -22,7 +22,7 @@ pc-b, sin publicar nada.
 | T9 | Recibo de una página | pendiente | — |
 | T10 | Prueba real a↔b + instalación en el perfil documentada | pendiente | — |
 
-**Contador: faltan 8 tareas** (T1 a la espera del reporte del host, y T4–T10). Se actualiza en cada bitácora.
+**Contador: faltan 7 tareas** (T4–T10). Se actualiza en cada bitácora.
 
 ## Definición de terminado del objetivo
 
@@ -48,7 +48,24 @@ pc-b, sin publicar nada.
 |---|---|---|---|
 | 2026-11-17 | — | Se fija el objetivo y esta hoja de ruta | `2a964b8` |
 | 2026-11-17 | T1 | Sonda del host: `probeHost` + `capabilities` + `/keeper host`; el plugin deja el reporte al montar. Falta el reporte del host real | `f602f3b` |
+| 2026-11-19 | T1 | Montaje real en pc-b con DSH limpio: las sesiones aparecen **agrupadas por carpeta**, hace falta reiniciar, y en el primer arranque aparecieron **duplicadas**; el segundo arranque las mostró bien | evidencia de campo |
 | 2026-11-19 | T2 + T3 | `core/plan` clasifica cada sesión contra el destino sin escribir; `capabilities()` decide el modo por servicios presentes. 6 casos nuevos, 185 tests | este commit |
+
+## Evidencia de campo — montaje en pc-b (2026-11-19)
+
+Montaje hecho con **DSH limpio desde cero** (configuración, login, plugin), sin CLI propia: los
+agentes colocaron los archivos y registraron lo necesario.
+
+| Observación | Qué confirma |
+|---|---|
+| Con DSH ya usado, los archivos **no** aparecieron; hubo que limpiar DSH entero | un host con registro inicializado **no adopta** archivos sueltos: hace falta `attach` (P2/P3) |
+| Con DSH limpio, al iniciar aparecieron **cada una en su carpeta** (agrupadas) | el **bootstrap** del registro adopta las sesiones del disco y las agrupa (modo `archivo` funciona en host virgen) |
+| Hizo falta **reiniciar** DSH, más de una vez | el alta es diferida: el panel arma la lista al arrancar (R1 confirmado) |
+| En el **primer** arranque aparecieron **duplicadas**; en el segundo ya no | el montaje no fue idempotente: hay que verificar archivo **y** registro antes de escribir/atar (R6) |
+| Una conversación se eliminó después del montaje | la operación de deshacer existe pero es manual (T8) |
+
+**Consecuencia para T4/T5:** el modo nativo no es un lujo; es la única forma de montar sobre un host
+**ya usado** sin borrarle el registro. Y toda escritura debe ser idempotente.
 
 ## Riesgos conocidos
 
@@ -59,6 +76,7 @@ pc-b, sin publicar nada.
 | R3 | El host cambia la firma de un servicio | `capabilities()` falla antes de escribir |
 | R4 | Instalar la rama en el perfil altera la captura actual | probar con una copia; volver a 1.0.2 es un `pnpm add` |
 | R5 | El gate de secretos pone en cuarentena la sesión a portar | aviso previo en el plan; `--force` explícito |
+| R6 | Montaje no idempotente: sesiones duplicadas en el primer arranque | comprobar archivo y registro antes de escribir o atar; probar el doble apply |
 
 ## Decisiones tomadas
 
