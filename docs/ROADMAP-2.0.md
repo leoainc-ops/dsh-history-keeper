@@ -12,8 +12,8 @@ pc-b, sin publicar nada.
 | # | Tarea | Estado | Evidencia |
 |---|---|---|---|
 | T1 | Spike del host: servicios, métodos y límites | **en curso** · sonda escrita; falta leer el reporte en el host real | `host/capabilities.js`, `/keeper host`, `history-keeper-host-probe.json` |
-| T2 | `core/plan`: clasificar sesiones y decidir destino | pendiente | — |
-| T3 | `host/capabilities`: elegir `uso` o `archivo` | pendiente | — |
+| T2 | `core/plan`: clasificar sesiones y decidir destino | **hecho** | `core/plan.js` + 6 casos; clasifica nueva / idéntica / divergente / ilegible / sin-destino |
+| T3 | `host/capabilities`: elegir `uso` o `archivo` | **hecho** | `capabilities()` decide por servicios presentes; se consume en T7 |
 | T4 | `host/publish-native`: crear, append, flush, cerrar | pendiente | — |
 | T5 | `host/workspaces`: resolver/crear y `attachSession` | pendiente | — |
 | T6 | Traducción de `cwd` (mapa origen → destino) | pendiente | — |
@@ -22,7 +22,7 @@ pc-b, sin publicar nada.
 | T9 | Recibo de una página | pendiente | — |
 | T10 | Prueba real a↔b + instalación en el perfil documentada | pendiente | — |
 
-**Contador: faltan 10 tareas.** Se actualiza en cada bitácora.
+**Contador: faltan 8 tareas** (T1 a la espera del reporte del host, y T4–T10). Se actualiza en cada bitácora.
 
 ## Definición de terminado del objetivo
 
@@ -47,7 +47,8 @@ pc-b, sin publicar nada.
 | Fecha | Tarea | Qué pasó | Commit |
 |---|---|---|---|
 | 2026-11-17 | — | Se fija el objetivo y esta hoja de ruta | `2a964b8` |
-| 2026-11-17 | T1 | Sonda del host: `probeHost` + `capabilities` + `/keeper host`; el plugin deja el reporte al montar. Falta instalarlo y leerlo en el host | este commit |
+| 2026-11-17 | T1 | Sonda del host: `probeHost` + `capabilities` + `/keeper host`; el plugin deja el reporte al montar. Falta el reporte del host real | `f602f3b` |
+| 2026-11-19 | T2 + T3 | `core/plan` clasifica cada sesión contra el destino sin escribir; `capabilities()` decide el modo por servicios presentes. 6 casos nuevos, 185 tests | este commit |
 
 ## Riesgos conocidos
 
