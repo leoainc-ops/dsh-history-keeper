@@ -31,7 +31,11 @@ import { closeUndoWindow, stageIncoming, undoImport } from '../lib/autoimport.js
 import { assertHostClosed } from '../lib/hostguard.js'
 import { PLUGIN_VERSION } from '../lib/version.js'
 import { resolvePaths } from '../lib/paths.js'
-import { mergeStores } from '../lib/merge.js'
+import { mergeStores, mergeIntoStore } from '../lib/merge.js'
+import { mountSessions } from '../lib/mount.js'
+import { addTranslation, loadTranslations, saveTranslations } from '../core/translations.js'
+import { recordMount, undoMount } from '../core/mount-journal.js'
+import { buildMountReceipt, writeReceipt } from '../core/receipt.js'
 import { resolveDevice } from '../lib/device.js'
 import { backfillAttachments, publishedAttachments, publishedState, snapshot } from '../lib/snapshot.js'
 import { verifyStore } from '../lib/verify.js'
@@ -101,6 +105,15 @@ merge options
   --b <dir> --b-key <file>   second vault and its passphrase file
   --out <dir> --out-key <f>  new vault directory and its passphrase file
 
+mount options
+  --from <dir>             the carried vault to bring in first (the folder or its vault/)
+  --stick-key <file>       passphrase file of the carried vault (defaults to this vault's)
+  --translate from=to      map a cwd of the origin to a local folder (repeatable)
+  --mode archivo           only archive mode here; uso runs inside the host
+  --dry-run                show the plan, write nothing
+  --yes                    apply the plan
+  --undo                   remove what the last mount created
+
 restore options
   --dry-run                show the plan, write nothing
   --no-preflight           write sessions this host cannot read (they will not open)
@@ -143,6 +156,7 @@ function parse(argv) {
     if (value === undefined) fail('missing value for --' + key)
     if (key === 'session') options.session.push(value)
     else if (key === 'allow-rule') options['allow-rule'] = [...(options['allow-rule'] ?? []), value]
+    else if (key === 'translate') options.translate = [...(options.translate ?? []), value]
     else options[key] = value
   }
   return options
@@ -223,7 +237,7 @@ function print(result, options, text) {
   else if (text) console.log(text)
 }
 
-function main() {
+async function main() {
   const options = parse(process.argv.slice(2))
   const command = options._[0] ?? 'status'
   const home = path.resolve(options.home ?? defaultHome())
@@ -234,7 +248,7 @@ function main() {
   const otherWrite =
     (command === 'gc' && options.yes === true) ||
     (command === 'upgrade' && options['dry-run'] !== true) ||
-    ((command === 'import' || command === 'restore' || command === 'attachments') && options['dry-run'] !== true)
+    ((command === 'import' || command === 'restore' || command === 'attachments' || (command === 'mount' && options.undo !== true)) && options['dry-run'] !== true)
   if (otherWrite) assertHostClosed(home, { allow: options['allow-host-open'] === true })
 
   if (command === 'init') {
@@ -526,10 +540,96 @@ function main() {
       format: STORE_FORMAT,
       commands: [
         'init', 'snapshot', 'attachments', 'compact', 'gc', 'merge', 'paths',
-        'export', 'import', 'verify', 'status', 'restore',
+        'export', 'import', 'verify', 'status', 'restore', 'mount',
       ],
     }
     print(report, options, JSON.stringify(report, null, 2))
+    return
+  }
+
+  if (command === 'mount') {
+    const layout = resolvePaths({ home: options.home ?? defaultHome(), vault: options.store ?? null, key: options['key-file'] ?? null })
+    const home = layout.home
+
+    if (options.undo === true) {
+      const result = await undoMount(home, {})
+      const lines = ['mount --undo']
+      if (result.status === 'nothing-to-undo') lines.push('  nothing to undo on this machine')
+      else if (result.status === 'already-undone') lines.push('  this mount was already undone')
+      else {
+        lines.push('  removed: ' + result.removed.length + '  refused: ' + result.refused.length)
+        for (const item of result.refused) lines.push('    ! ' + (item.path ?? item.sessionId) + '  ' + item.reason)
+        lines.push('  the vault keeps the history; inside the host, /keeper mount --undo also ungroups')
+      }
+      print(result, options, lines.join('\n'))
+      return
+    }
+
+    const mode = String(options.mode ?? 'archivo')
+    if (mode !== 'archivo') fail('mode ' + mode + ' publishes through the host: run /keeper mount inside DSH')
+
+    const translations = loadTranslations(home)
+    const pairs = Array.isArray(options.translate) ? options.translate : options.translate ? [options.translate] : []
+    for (const pair of pairs) {
+      const at = String(pair).indexOf('=')
+      if (at < 0) fail('--translate needs <from>=<to>')
+      addTranslation(translations, String(pair).slice(0, at), String(pair).slice(at + 1))
+    }
+
+    let carried = null
+    if (options.from) {
+      const fromDir = path.resolve(String(options.from))
+      const vaultDir = fs.existsSync(path.join(fromDir, 'meta.json')) ? fromDir : path.join(fromDir, 'vault')
+      const stickKey = options['stick-key']
+        ? fs.readFileSync(path.resolve(String(options['stick-key'])), 'utf8').trim()
+        : process.env.KEEPER_PASSPHRASE ?? passphraseFrom(options).passphrase
+      carried = openStore(vaultDir, stickKey)
+    }
+
+    const store = openFrom(options)
+    const planReport = await mountSessions({ store, home, mode: 'archivo', translations, force: options.force === true, dryRun: true })
+    const lines = ['mount  ' + home]
+    lines.push(
+      '  sessions  ' + planReport.plan.totals.sessions +
+      '  nueva ' + planReport.plan.totals.nueva +
+      '  identica ' + planReport.plan.totals.identica +
+      '  divergente ' + planReport.plan.totals.divergente +
+      '  ilegible ' + planReport.plan.totals.ilegible,
+    )
+    for (const item of planReport.plan.sessions) {
+      const mark = item.action === 'nueva' ? '+' : item.action === 'identica' ? '=' : item.action === 'divergente' ? '!' : 'x'
+      lines.push('    ' + mark + ' ' + String(item.sessionId).slice(0, 26) + '  ' + item.action + (item.translated ? '  (cwd traducido)' : ''))
+    }
+    if (options['dry-run'] === true) {
+      print(planReport, options, lines.join('\n'))
+      return
+    }
+    if (options.yes !== true) {
+      print(planReport, options, lines.join('\n') + '\n  nothing was written: add --yes to apply')
+      process.exit(2)
+    }
+
+    if (carried) {
+      const device = resolveDevice({ configDir: home, deviceName: options['device-name'] })
+      const merged = mergeIntoStore({ localStore: store, stickStore: carried, device })
+      lines.push('  merged    ' + (Array.isArray(merged.sessions) ? merged.sessions.length : '?') + ' session(s) from ' + carried.dir)
+    }
+    if (pairs.length > 0) saveTranslations(home, translations)
+
+    const reopened = openFrom(options)
+    const report = await mountSessions({ store: reopened, home, mode: 'archivo', translations, force: options.force === true })
+    const receipt = buildMountReceipt({ report, vault: { storeId: reopened.meta.storeId, deviceName: reopened.meta.deviceName } })
+    const receiptFile = writeReceipt(home, receipt)
+    recordMount(home, {
+      mode: 'archivo',
+      vault: { storeId: reopened.meta.storeId, deviceId: reopened.meta.deviceId, deviceName: reopened.meta.deviceName },
+      created: report.created.map((item) => ({ sessionId: item.sessionId, path: item.target })),
+      translations: pairs,
+    })
+    lines.push('  created   ' + report.created.length + '  identical ' + report.identical.length + '  refused ' + report.refused.length + '  skipped ' + report.skipped.length)
+    lines.push('  receipt   ' + receiptFile)
+    lines.push('  undo      keeper mount --undo')
+    print(report, options, lines.join('\n'))
     return
   }
 
@@ -829,7 +929,7 @@ print(report, options, lines.join('\n'))
 }
 
 try {
-  main()
+  await main()
 } catch (error) {
   console.error('keeper: ' + (error && error.message ? error.message : String(error)))
   process.exit(1)

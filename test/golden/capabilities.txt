@@ -13,6 +13,7 @@
     "import",
     "verify",
     "status",
-    "restore"
+    "restore",
+    "mount"
   ]
 }
