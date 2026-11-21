@@ -18,11 +18,11 @@ pc-b, sin publicar nada.
 | T5 | `host/workspaces`: resolver/crear y `attachSession` | **hecho** | `host/workspaces.js`: resuelve, crea si falta, ata una sola vez; 4 casos |
 | T6 | Traducción de `cwd` (mapa origen → destino) | **hecho** | `core/translations.js`: mapa persistido, altas idempotentes, cambio de destino rechazado; 5 casos |
 | T7 | `keeper mount`: planificar, aplicar, sellar, reportar | **hecho (orquestador)** | `lib/mount.js`: aplica el plan en `archivo` o `uso`, con `only`, `dryRun` y `force`; 5 casos. Falta el subcomando CLI |
-| T8 | Journal + `undo` mínimos | pendiente | — |
-| T9 | Recibo de una página | pendiente | — |
+| T8 | Journal + `undo` mínimos | **hecho** | `core/mount-journal.js`: registra qué creó y a qué ató; `undo` borra sólo lo que está bajo `sessions/`, desagrupa y marca el montaje como deshecho; 3 casos |
+| T9 | Recibo de una página | **hecho** | `core/receipt.js`: qué, de dónde, modo, sesiones, sello, cómo deshacer; sin frase ni contenido; 3 casos |
 | T10 | Prueba real a↔b + instalación en el perfil documentada | pendiente | — |
 
-**Contador: faltan 3 tareas** (T8–T10), más el subcomando CLI de T7. Se actualiza en cada bitácora.
+**Contador: falta 1 tarea** (T10), más el subcomando CLI de T7. Se actualiza en cada bitácora.
 
 ## Definición de terminado del objetivo
 
@@ -49,6 +49,7 @@ pc-b, sin publicar nada.
 | 2026-11-17 | — | Se fija el objetivo y esta hoja de ruta | `2a964b8` |
 | 2026-11-17 | T1 | Sonda del host: `probeHost` + `capabilities` + `/keeper host`; el plugin deja el reporte al montar. Falta el reporte del host real | `f602f3b` |
 | 2026-11-19 | T1 | Montaje real en pc-b con DSH limpio: las sesiones aparecen **agrupadas por carpeta**, hace falta reiniciar, y en el primer arranque aparecieron **duplicadas**; el segundo arranque las mostró bien | evidencia de campo |
+| 2026-11-21 | T8 + T9 | Journal de montaje con deshacer (borra sólo bajo `sessions/`, desagrupa, idempotente) y recibo de una página sin secretos | este commit |
 | 2026-11-19 | T6 + T7 | Traducción persistida y orquestador de montaje: `archivo` escribe byte a byte e es idempotente; `uso` publica con el `cwd` traducido y ata una vez; sin destino no fuerza nada | este commit |
 | 2026-11-19 | T4 + T5 | Publicación nativa y agrupación, probadas contra un host falso: id original, `createdAt` intacto, `cwd` traducido, lotes contiguos, sello, y atachado idempotente | este commit |
 | 2026-11-19 | T2 + T3 | `core/plan` clasifica cada sesión contra el destino sin escribir; `capabilities()` decide el modo por servicios presentes. 6 casos nuevos, 185 tests | este commit |

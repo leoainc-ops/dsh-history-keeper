@@ -66,3 +66,37 @@ function isAlreadyAttached(error) {
   const message = String(error?.message ?? '')
   return /already (attached|accounted|belongs)/i.test(message) || /includes?/i.test(message)
 }
+
+/**
+ * Undo an attach: take the session out of its workspace, leaving the session itself alone.
+ *
+ * `undo` deletes the files it created; the registry entry is a separate effect and deserves its own
+ * operation, because a session can be published without being grouped.
+ * @param {{workspaceRegistry: any, sessionId: string, cwd: string|null}} options
+ */
+export async function detachFromWorkspace(options) {
+  const { workspaceRegistry, sessionId, cwd = null } = options ?? {}
+  if (!workspaceRegistry || typeof workspaceRegistry.resolveByPath !== 'function') {
+    return { status: 'unavailable', code: 'NO_WORKSPACE_REGISTRY' }
+  }
+  if (!cwd) return { status: 'no-cwd', code: 'NO_CWD' }
+  let workspace
+  try {
+    workspace = await workspaceRegistry.resolveByPath(cwd)
+  } catch (error) {
+    return { status: 'no-cwd', code: 'CWD_UNRESOLVED', message: error?.message ?? String(error) }
+  }
+  if (!workspace) return { status: 'not-found' }
+  if (typeof workspace.detachSession !== 'function') {
+    return { status: 'failed', code: 'DETACH_UNAVAILABLE', message: 'the workspace exposes no detachSession' }
+  }
+  try {
+    await workspace.detachSession(sessionId)
+    return { status: 'detached', workspaceId: workspace.id ?? null }
+  } catch (error) {
+    if (/not (attached|accounted)|does not include/i.test(String(error?.message ?? ''))) {
+      return { status: 'already-detached', workspaceId: workspace.id ?? null }
+    }
+    return { status: 'failed', code: 'DETACH_FAILED', message: error?.message ?? String(error) }
+  }
+}
