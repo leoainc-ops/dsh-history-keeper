@@ -77,6 +77,7 @@ Estados posibles: `borrador` · `revisado` · `aprobado` · `obsoleto`.
 | C | [Anexo C — Digesto de la sesión de pc-b](anexos/C-DIGESTO-montar-la-boveda.md) | ¿qué se decidió y qué se verificó en la sesión que originó 2.0? | histórico |
 | D | [Anexo D — Relevamiento de problemas y mejoras](anexos/D-RELEVAMIENTO-problemas-y-mejoras.md) | ¿qué falló entre el 10 y el 16-11 y qué mejorar? | revisado |
 | E | [Anexo E — Función de purga](anexos/E-FUNCION-purga.md) | ¿cómo se borra una conversación de la bóveda y del host? | propuesta |
+| F | [Anexo F — DNS de rutas](anexos/F-DNS-RUTAS.md) | ¿puede la bóveda recordar la geografía de cada host? | propuesta |
 
 ## Requisitos funcionales
 
