@@ -31,7 +31,7 @@ export const ACTIONS = ['nueva', 'identica', 'divergente', 'ilegible', 'sin-dest
  *            totals: Record<string, number>}}
  */
 export function buildPlan(options) {
-  const { store, home, mode = 'archivo', translate = {}, reader = null, attachments = [] } = options ?? {}
+  const { store, home, mode = 'archivo', translate = {}, reader = null, attachments = [], hostSessions = null } = options ?? {}
   const { sessions, archived, problems, chain } = collectSessions(store)
 
   const plan = {
@@ -98,13 +98,19 @@ export function buildPlan(options) {
     }
 
     let action = 'nueva'
-    let existing = null
-    try {
-      existing = fs.readFileSync(targetPath)
-    } catch (error) {
-      if (error.code !== 'ENOENT') plan.blocks.push({ sessionId, code: 'READ_TARGET_FAILED', message: error.message })
+    if (mode === 'uso' && hostSessions) {
+      // In native mode what matters is whether the HOST has the session, not whether the file exists:
+      // the host wrote that file, so its presence proves nothing about the registry.
+      action = hostSessions.has(sessionId) ? 'identica' : 'nueva'
+    } else {
+      let existing = null
+      try {
+        existing = fs.readFileSync(targetPath)
+      } catch (error) {
+        if (error.code !== 'ENOENT') plan.blocks.push({ sessionId, code: 'READ_TARGET_FAILED', message: error.message })
+      }
+      if (existing !== null) action = existing.equals(session.buffer) ? 'identica' : 'divergente'
     }
-    if (existing !== null) action = existing.equals(session.buffer) ? 'identica' : 'divergente'
 
     plan.sessions.push({
       sessionId,
