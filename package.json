@@ -1,6 +1,6 @@
 {
   "name": "dsh-history-keeper",
-  "version": "1.0.2",
+  "version": "2.0.0-alpha.0",
   "description": "Keep your DeepSeek Harness conversation history in an encrypted, self-describing vault you own.",
   "type": "module",
   "main": "lib/index.js",

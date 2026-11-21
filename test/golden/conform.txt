@@ -7,4 +7,4 @@ conform ok  <repo>/conformance/fixture/vault
   ok   restores byte for byte
   ok   refuses a wrong passphrase
   warn the vault predates the handshake; run keeper upgrade to let it describe itself
-  reader: 1.0.2  format dsh-history-keeper/store/1
+  reader: 2.0.0-alpha.0  format dsh-history-keeper/store/1

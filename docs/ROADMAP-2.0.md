@@ -49,6 +49,7 @@ pc-b, sin publicar nada.
 | 2026-11-17 | — | Se fija el objetivo y esta hoja de ruta | `2a964b8` |
 | 2026-11-17 | T1 | Sonda del host: `probeHost` + `capabilities` + `/keeper host`; el plugin deja el reporte al montar. Falta el reporte del host real | `f602f3b` |
 | 2026-11-19 | T1 | Montaje real en pc-b con DSH limpio: las sesiones aparecen **agrupadas por carpeta**, hace falta reiniciar, y en el primer arranque aparecieron **duplicadas**; el segundo arranque las mostró bien | evidencia de campo |
+| 2026-11-21 | — | Versión de la rama: **2.0.0-alpha.0**, y arreglo del comparador: no entendía `-alpha.N`/`-beta.N` y devolvía 0, así que un `export --downlevel` dejaba de rechazarse. Artefacto `dsh-history-keeper-2.0.0-alpha.0.tgz` (247 KB) | este commit |
 | 2026-11-21 | T7 (CLI) | `keeper mount` de punta a punta: plan sin escribir, `--yes` aplica, recibo y journal, `--undo` borra sólo lo creado. Guardia de host cerrado | este commit |
 | 2026-11-21 | — | anexo F: propuesta del registro de rutas (DNS de workspaces) para las próximas revisiones | `697c8be` |
 | 2026-11-21 | T8 + T9 | Journal de montaje con deshacer (borra sólo bajo `sessions/`, desagrupa, idempotente) y recibo de una página sin secretos | este commit |
